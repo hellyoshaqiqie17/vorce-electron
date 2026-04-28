@@ -13,7 +13,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 const channels = {
   invoke: [
-    "auth:login",
+    "auth:open-google",
     "auth:logout",
     "auth:session",
     "device:register",
@@ -21,7 +21,12 @@ const channels = {
     "monitor:stop",
     "monitor:status",
   ],
-  on: ["monitor:sample", "monitor:status-changed"],
+  on: [
+    "auth:login-success",
+    "auth:login-error",
+    "monitor:sample",
+    "monitor:status-changed",
+  ],
 };
 
 function ensure(channel, allowed) {

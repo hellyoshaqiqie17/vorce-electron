@@ -14,10 +14,7 @@ const $ = (sel) => document.querySelector(sel);
 const els = {
   viewLogin: $("#view-login"),
   viewDashboard: $("#view-dashboard"),
-  loginForm: $("#login-form"),
-  loginEmail: $("#login-email"),
-  loginPassword: $("#login-password"),
-  loginSubmit: $("#login-submit"),
+  btnGoogleLogin: $("#btn-google-login"),
   loginError: $("#login-error"),
   sessionEmail: $("#session-email"),
   btnLogout: $("#btn-logout"),
@@ -43,8 +40,6 @@ let running = false;
 function showLogin() {
   els.viewLogin.hidden = false;
   els.viewDashboard.hidden = true;
-  els.loginPassword.value = "";
-  els.loginEmail.focus();
 }
 
 function showDashboard(session) {
@@ -73,10 +68,10 @@ function showLoginError(message) {
 }
 
 function setLoginBusy(busy) {
-  els.loginSubmit.disabled = busy;
-  els.loginSubmit.querySelector(".btn-label").textContent = busy
+  els.btnGoogleLogin.disabled = busy;
+  els.btnGoogleLogin.querySelector(".btn-label").textContent = busy
     ? "Memproses\u2026"
-    : "Masuk";
+    : "Masuk dengan Google";
 }
 
 /* ───────────── formatting ───────────── */
@@ -98,6 +93,25 @@ function formatIdle(idle) {
 function formatTime(ts) {
   const d = ts ? new Date(ts * 1000) : new Date();
   return d.toLocaleTimeString("id-ID", { hour12: false });
+}
+
+/* ───────────── post-login setup ───────────── */
+
+async function afterLogin(session) {
+  showDashboard(session);
+  showLoginError("");
+
+  const reg = await api.invoke("device:register");
+  if (!reg.ok) {
+    showLoginError(reg.error || "Pendaftaran perangkat gagal.");
+    return;
+  }
+  els.kvDeviceId.textContent = reg.data.deviceId;
+
+  const start = await api.invoke("monitor:start");
+  if (!start.ok) {
+    showLoginError(start.error || "Gagal memulai monitor.");
+  }
 }
 
 /* ───────────── boot ───────────── */
@@ -127,39 +141,29 @@ async function refreshSession() {
 
 /* ───────────── handlers ───────────── */
 
-els.loginForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
+els.btnGoogleLogin.addEventListener("click", async () => {
   showLoginError("");
   setLoginBusy(true);
-
-  const email = els.loginEmail.value.trim();
-  const password = els.loginPassword.value;
-
   try {
-    const res = await api.invoke("auth:login", { email, password });
-    if (!res.ok) {
-      showLoginError(res.error || "Login gagal.");
-      return;
-    }
-
-    showDashboard(res.data);
-
-    const reg = await api.invoke("device:register");
-    if (!reg.ok) {
-      showLoginError(reg.error || "Pendaftaran perangkat gagal.");
-      return;
-    }
-    els.kvDeviceId.textContent = reg.data.deviceId;
-
-    const start = await api.invoke("monitor:start");
-    if (!start.ok) {
-      showLoginError(start.error || "Gagal memulai monitor.");
-    }
+    await api.invoke("auth:open-google");
   } catch (err) {
     showLoginError(err && err.message ? err.message : "Terjadi kesalahan.");
-  } finally {
     setLoginBusy(false);
   }
+});
+
+api.on("auth:login-success", async (session) => {
+  setLoginBusy(false);
+  try {
+    await afterLogin(session);
+  } catch (err) {
+    showLoginError(err && err.message ? err.message : "Terjadi kesalahan.");
+  }
+});
+
+api.on("auth:login-error", ({ error }) => {
+  setLoginBusy(false);
+  showLoginError(error || "Login gagal.");
 });
 
 els.btnLogout.addEventListener("click", async () => {

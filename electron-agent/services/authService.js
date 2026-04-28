@@ -1,16 +1,16 @@
 "use strict";
 
 /**
- * Authentication — uses the EXISTING VORCE backend login endpoint.
+ * Authentication — uses Google Sign-In via Firebase, then authenticates
+ * with the EXISTING VORCE backend.
  *
- *   POST /auth/login  { email, password }
+ *   POST /api/Login/login-google-admin  { idToken, deviceInfo }
  *
  * The backend response is the single source of truth for userId and
- * companyId. We never store or transmit those fields client-side;
- * they live inside the bearer token (JWT) and the backend re-derives
- * them on every subsequent request.
+ * companyId. We never store or transmit those fields client-side.
  */
 
+const os = require("os");
 const config = require("../core/config");
 const api = require("./apiClient");
 const tokenStore = require("./tokenStore");
@@ -18,14 +18,27 @@ const { make } = require("../utils/logger");
 
 const log = make("authService");
 
-async function login({ email, password }) {
-  if (!email || !password) {
-    throw new Error("Email dan password wajib diisi.");
+function getDeviceInfo() {
+  const platform = os.platform();
+  const osName =
+    platform === "win32"
+      ? "Windows"
+      : platform === "darwin"
+        ? "macOS"
+        : "Linux";
+  return `Electron Agent (${osName})`;
+}
+
+async function loginWithGoogle({ idToken, email }) {
+  if (!idToken) {
+    throw new Error("Firebase ID token tidak tersedia.");
   }
 
+  const deviceInfo = getDeviceInfo();
+
   const data = await api.post(
-    config.endpoints.login,
-    { email, password },
+    config.endpoints.loginGoogle,
+    { idToken, deviceInfo },
     { auth: false }
   );
 
@@ -35,12 +48,12 @@ async function login({ email, password }) {
   }
 
   tokenStore.saveToken(token);
-  tokenStore.setDisplayEmail(email);
+  tokenStore.setDisplayEmail(email || "");
 
-  log.info("login ok");
+  log.info("login ok (google)");
 
   return {
-    email,
+    email: email || "",
     hasToken: true,
   };
 }
@@ -65,7 +78,7 @@ function currentSession() {
 }
 
 module.exports = {
-  login,
+  loginWithGoogle,
   logout,
   isLoggedIn,
   currentSession,
