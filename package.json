@@ -1,0 +1,25 @@
+{
+  "name": "vorce-electron-agent",
+  "version": "0.1.0",
+  "description": "VORCE desktop monitoring agent. Authenticates against the existing VORCE backend, registers the device, and periodically reports CPU/RAM/active window/idle metrics. Never talks to Firestore directly.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "rebuild": "electron-rebuild"
+  },
+  "author": "VORCE",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "active-win": "^8.2.1",
+    "systeminformation": "^5.22.11"
+  },
+  "devDependencies": {
+    "electron": "^31.3.1",
+    "electron-rebuild": "^3.2.9"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'"
+    />
+    <title>VORCE Agent</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <!-- Login view -->
+      <section id="view-login" class="view">
+        <header class="brand">
+          <div class="brand-logo">V</div>
+          <div>
+            <h1>VORCE Agent</h1>
+            <p class="muted">Masuk untuk memulai monitoring perangkat ini.</p>
+          </div>
+        </header>
+
+        <form id="login-form" class="card" autocomplete="off">
+          <label class="field">
+            <span>Email</span>
+            <input
+              id="login-email"
+              type="email"
+              required
+              placeholder="nama@perusahaan.com"
+              autocomplete="username"
+            />
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input
+              id="login-password"
+              type="password"
+              required
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+          </label>
+
+          <p id="login-error" class="error" hidden></p>
+
+          <button id="login-submit" type="submit" class="btn primary">
+            <span class="btn-label">Masuk</span>
+          </button>
+
+          <p class="muted small">
+            Otentikasi diteruskan ke API VORCE. Token disimpan terenkripsi
+            di perangkat ini.
+          </p>
+        </form>
+      </section>
+
+      <!-- Dashboard view -->
+      <section id="view-dashboard" class="view" hidden>
+        <header class="dash-header">
+          <div>
+            <h1>Monitoring</h1>
+            <p id="session-email" class="muted small"></p>
+          </div>
+          <button id="btn-logout" class="btn ghost">Keluar</button>
+        </header>
+
+        <div class="status-bar">
+          <span id="status-dot" class="dot"></span>
+          <span id="status-text">Idle</span>
+          <span class="spacer"></span>
+          <button id="btn-toggle" class="btn primary small">Mulai</button>
+        </div>
+
+        <section class="card">
+          <h2>Perangkat</h2>
+          <dl class="kv">
+            <dt>Device ID</dt>
+            <dd id="kv-device-id">—</dd>
+            <dt>Interval</dt>
+            <dd id="kv-interval">—</dd>
+          </dl>
+        </section>
+
+        <section class="card">
+          <h2>Metrik live</h2>
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">CPU</div>
+              <div class="metric-value" id="metric-cpu">—</div>
+              <div class="bar"><div id="bar-cpu" class="bar-fill"></div></div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">RAM</div>
+              <div class="metric-value" id="metric-ram">—</div>
+              <div class="bar"><div id="bar-ram" class="bar-fill"></div></div>
+            </div>
+          </div>
+          <dl class="kv">
+            <dt>Aplikasi aktif</dt>
+            <dd id="kv-app">—</dd>
+            <dt>Judul jendela</dt>
+            <dd id="kv-title" class="ellipsis">—</dd>
+            <dt>Idle</dt>
+            <dd id="kv-idle">—</dd>
+            <dt>Update terakhir</dt>
+            <dd id="kv-updated">—</dd>
+          </dl>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
