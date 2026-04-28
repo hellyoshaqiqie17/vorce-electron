@@ -275,3 +275,31 @@ h2 {
   background: linear-gradient(90deg, var(--primary), #8b5cf6);
   transition: width 0.4s ease;
 }
+
+.btn-google {
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-google:hover:not([disabled]) {
+  background: #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-google[disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
