@@ -3,14 +3,13 @@
 /**
  * Electron entry point.
  *
- * Responsibilities:
- *   - Create the (secure) BrowserWindow.
- *   - Wire up IPC handlers that proxy renderer requests into the auth /
- *     device / metrics services.
- *   - Drive the monitor loop and forward samples to the renderer.
+ * - Creates the secure BrowserWindow.
+ * - Wires up IPC handlers that proxy renderer requests into auth /
+ *   device / metrics services.
+ * - Drives the monitor loop and forwards samples to the renderer.
  *
  * The renderer never does network IO, never reads the filesystem, never
- * imports Node modules. Every privileged action lives here.
+ * imports Node modules.
  */
 
 const path = require("path");
@@ -41,8 +40,6 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      // Renderer must NEVER reach the network or local files directly. All
-      // such operations go through the IPC handlers below.
       webSecurity: true,
     },
   });
@@ -99,7 +96,6 @@ function setupIpc() {
       if (!authService.isLoggedIn()) {
         return { ok: false, error: "Belum login." };
       }
-      // Ensure the device is registered before we start pushing metrics.
       await deviceService.ensureRegistered();
 
       monitor.start({

@@ -3,14 +3,12 @@
 /**
  * Monitor orchestrator.
  *
- * Pulls a sample from every collector on a fixed cadence, ships it through
- * `metricsService`, and emits the latest sample on a callback so the
- * renderer can show a live dashboard without ever hitting the network
- * directly.
+ * Pulls a sample from every collector on a fixed cadence, ships it via
+ * metricsService, and emits each sample on a callback so the renderer
+ * can show a live dashboard without hitting the network directly.
  *
- * The loop is failure-tolerant: a single collector error or a single failed
- * push must never stop the agent. Errors are logged and the next tick
- * tries again.
+ * Failure-tolerant: a single collector error or a single failed push
+ * never stops the agent.
  */
 
 const config = require("./config");
@@ -43,7 +41,6 @@ async function takeSample() {
     settle(getMemoryUsage(), 0),
     settle(getActiveApp(), { name: "", title: "" }),
   ]);
-  // idle is sync (powerMonitor); wrap to keep the shape consistent.
   const idle = getIdle();
 
   return {
@@ -72,8 +69,6 @@ async function tick() {
     return;
   }
 
-  // Always notify the renderer so the live dashboard updates even when the
-  // upload fails (offline, backend hiccup, etc).
   if (typeof onSample === "function") {
     try {
       onSample({ ...sample, deviceId });
@@ -98,13 +93,10 @@ function start({ onSample: cb } = {}) {
   onSample = cb || null;
   log.info("starting", { intervalMs: config.metricsIntervalMs });
 
-  // Fire one sample immediately so the UI doesn't sit blank for 5 seconds.
   tick().catch(() => {});
   timer = setInterval(() => {
     tick().catch(() => {});
   }, config.metricsIntervalMs);
-  // Don't keep the event loop alive just for this timer — the app window
-  // and IPC handlers already do that.
   if (timer.unref) timer.unref();
 }
 

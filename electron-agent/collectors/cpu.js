@@ -1,9 +1,7 @@
 "use strict";
 
 /**
- * CPU usage % across all cores. systeminformation samples the kernel counters
- * over a short window, so the first call after boot can return 0 — that's
- * fine, the next interval will produce a real number.
+ * CPU usage % across all cores via systeminformation.
  */
 
 const si = require("systeminformation");

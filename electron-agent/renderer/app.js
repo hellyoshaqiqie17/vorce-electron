@@ -4,8 +4,7 @@
  * Renderer logic. Talks ONLY to window.vorceAgent (exposed by preload.js).
  *
  * No fetch(), no Node modules, no filesystem. The CSP in index.html also
- * forbids `connect-src` so a stray `fetch` would be blocked even if it were
- * accidentally added.
+ * forbids connect-src so a stray fetch would be blocked.
  */
 
 const api = window.vorceAgent;
@@ -76,24 +75,24 @@ function showLoginError(message) {
 function setLoginBusy(busy) {
   els.loginSubmit.disabled = busy;
   els.loginSubmit.querySelector(".btn-label").textContent = busy
-    ? "Memproses…"
+    ? "Memproses\u2026"
     : "Masuk";
 }
 
 /* ───────────── formatting ───────────── */
 
 function formatPct(v) {
-  if (v == null) return "—";
+  if (v == null) return "\u2014";
   return `${Math.round(v)}%`;
 }
 
 function formatIdle(idle) {
-  if (!idle) return "—";
+  if (!idle) return "\u2014";
   const s = Math.max(0, Math.round(Number(idle.seconds) || 0));
   const label = idle.isIdle ? "Idle" : "Aktif";
-  if (s < 60) return `${label} · ${s}s`;
+  if (s < 60) return `${label} \u00b7 ${s}s`;
   const m = Math.floor(s / 60);
-  return `${label} · ${m}m ${s % 60}s`;
+  return `${label} \u00b7 ${m}m ${s % 60}s`;
 }
 
 function formatTime(ts) {
@@ -145,8 +144,6 @@ els.loginForm.addEventListener("submit", async (e) => {
 
     showDashboard(res.data);
 
-    // Register the device immediately so the dashboard can show the deviceId
-    // before the first tick fires.
     const reg = await api.invoke("device:register");
     if (!reg.ok) {
       showLoginError(reg.error || "Pendaftaran perangkat gagal.");
@@ -154,7 +151,6 @@ els.loginForm.addEventListener("submit", async (e) => {
     }
     els.kvDeviceId.textContent = reg.data.deviceId;
 
-    // Auto-start monitoring after a successful login + register.
     const start = await api.invoke("monitor:start");
     if (!start.ok) {
       showLoginError(start.error || "Gagal memulai monitor.");
@@ -178,7 +174,6 @@ els.btnToggle.addEventListener("click", async () => {
     const channel = running ? "monitor:stop" : "monitor:start";
     const res = await api.invoke(channel);
     if (!res.ok && !running) {
-      // start failed — surface error in the dashboard area via title
       els.statusText.textContent = res.error || "Gagal memulai.";
     }
   } finally {
@@ -194,8 +189,8 @@ api.on("monitor:sample", (sample) => {
   els.barRam.style.width = `${Math.max(0, Math.min(100, sample.ram || 0))}%`;
 
   const app = sample.activeApp || {};
-  els.kvApp.textContent = app.name || "—";
-  els.kvTitle.textContent = app.title || "—";
+  els.kvApp.textContent = app.name || "\u2014";
+  els.kvTitle.textContent = app.title || "\u2014";
   els.kvIdle.textContent = formatIdle(sample.idle);
   els.kvUpdated.textContent = formatTime(sample.timestamp);
 });

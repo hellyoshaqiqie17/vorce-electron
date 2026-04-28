@@ -1,14 +1,11 @@
 "use strict";
 
 /**
- * Idle tracking.
+ * Idle tracking via Electron powerMonitor.
  *
- * The spec lists `desktop-idle` as a reference dependency, but that package
- * is unmaintained and ships native bindings that frequently fail to compile
- * on modern Windows toolchains. We use Electron's built-in
- * `powerMonitor.getSystemIdleTime()` instead — same OS-level signal, no
- * native build step. Drop-in swap is trivial if you'd rather use the
- * original library.
+ * The spec references desktop-idle, but we use Electron's built-in
+ * powerMonitor.getSystemIdleTime() — same OS-level signal, no native
+ * build step, works on Windows / macOS / Linux out of the box.
  */
 
 const { powerMonitor } = require("electron");

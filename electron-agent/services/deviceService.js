@@ -7,12 +7,11 @@
  *   Headers: Authorization: Bearer <token>
  *   Body:    { hostname, os, cpuModel, totalRam }
  *
- * The backend extracts userId/companyId from the bearer token and persists
+ * The backend extracts userId/companyId from the bearer token and creates
  * the device document at:
  *   companies/{companyId}/users/{userId}/devices/{deviceId}
  *
- * We never send userId or companyId in the body — that is the whole point of
- * the architecture. The backend is the single source of truth.
+ * We NEVER send userId or companyId in the request body.
  */
 
 const config = require("../core/config");
@@ -26,7 +25,6 @@ const log = make("deviceService");
 async function registerDevice() {
   const info = await collectDeviceInfo();
 
-  // Whitelist exactly the fields defined in the spec — nothing else leaks.
   const payload = {
     hostname: info.hostname,
     os: info.os,

@@ -1,12 +1,10 @@
 "use strict";
 
 /**
- * Foreground window detection via `active-win`.
+ * Foreground window detection via active-win.
  *
- * `active-win` v8+ is ESM-only, so we lazy-import it from this CommonJS
- * module. We deliberately surface only `name` (process name) and `title`
- * (window title). Anything more — URLs, document paths, browser-specific
- * fields — would push us into territory the spec explicitly forbids.
+ * active-win v8+ is ESM-only so we lazy-import it from this CJS module.
+ * Only process name and window title are surfaced — no URLs, no file paths.
  */
 
 let activeWinPromise = null;
@@ -30,8 +28,6 @@ async function getActiveApp() {
 
     return { name: processName, title };
   } catch (_err) {
-    // Windowing systems (e.g. Wayland) may refuse the query — return blanks
-    // rather than crashing the metrics loop.
     return { name: "", title: "" };
   }
 }

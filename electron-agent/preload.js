@@ -2,13 +2,11 @@
 
 /**
  * Preload script — the only bridge between the sandboxed renderer and the
- * Electron main process. Everything exposed here is whitelisted; the
- * renderer can never freely import Node modules, touch the filesystem, or
- * call the network on its own.
+ * Electron main process.
  *
- *   contextIsolation: true   (set in main.js)
- *   nodeIntegration:  false  (set in main.js)
- *   sandbox:          true   (set in main.js)
+ *   contextIsolation: true
+ *   nodeIntegration:  false
+ *   sandbox:          true
  */
 
 const { contextBridge, ipcRenderer } = require("electron");
@@ -33,12 +31,10 @@ function ensure(channel, allowed) {
 }
 
 contextBridge.exposeInMainWorld("vorceAgent", {
-  // request/response style — Promise<result>
   invoke: (channel, payload) => {
     ensure(channel, channels.invoke);
     return ipcRenderer.invoke(channel, payload);
   },
-  // event stream from main → renderer (e.g. live samples)
   on: (channel, listener) => {
     ensure(channel, channels.on);
     const subscription = (_event, data) => listener(data);

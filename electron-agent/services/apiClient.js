@@ -1,14 +1,15 @@
 "use strict";
 
 /**
- * Minimal fetch wrapper that:
- *   - Joins paths against the configured base URL.
- *   - Attaches Authorization: Bearer <token> when one is loaded.
- *   - Times out hung requests.
- *   - Throws ApiError with a stable shape so callers can pattern-match.
+ * Minimal fetch wrapper — the ONLY place that talks to the VORCE backend.
  *
- * IMPORTANT: this is the ONLY place that talks to the backend. There is no
- * Firestore client anywhere in this app — that is the backend's job.
+ * - Joins paths against the configured base URL.
+ * - Attaches Authorization: Bearer <token> when available.
+ * - Times out hung requests.
+ * - Retries transient failures with exponential backoff.
+ *
+ * There is NO Firestore client in this app — all persistence is the
+ * backend's responsibility.
  */
 
 const config = require("../core/config");
@@ -97,7 +98,7 @@ async function rawRequest(method, path, { body, auth = true, timeoutMs } = {}) {
 
 function isTransient(err) {
   if (!(err instanceof ApiError)) return true;
-  if (err.status === 0) return true; // network / timeout
+  if (err.status === 0) return true;
   if (err.status >= 500 && err.status <= 599) return true;
   if (err.status === 408 || err.status === 429) return true;
   return false;

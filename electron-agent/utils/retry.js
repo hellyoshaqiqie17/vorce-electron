@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * Run `fn` with exponential backoff. `shouldRetry(err)` decides whether an
- * error is transient and worth retrying.
+ * Run `fn` with exponential backoff.
+ * `shouldRetry(err)` decides whether an error is transient.
  */
 async function withRetry(fn, opts = {}) {
   const retries = opts.retries ?? 3;
@@ -10,7 +10,6 @@ async function withRetry(fn, opts = {}) {
   const shouldRetry = opts.shouldRetry ?? (() => true);
 
   let attempt = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       return await fn(attempt);
