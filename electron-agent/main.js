@@ -23,6 +23,7 @@ const log = make("main");
 
 let mainWindow = null;
 let authWindow = null;
+let authResolved = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -63,6 +64,8 @@ function openGoogleAuthWindow() {
     return;
   }
 
+  authResolved = false;
+
   authWindow = new BrowserWindow({
     width: 480,
     height: 640,
@@ -85,6 +88,9 @@ function openGoogleAuthWindow() {
 
   authWindow.on("closed", () => {
     authWindow = null;
+    if (!authResolved) {
+      broadcast("auth:login-error", { error: "Jendela login ditutup." });
+    }
   });
 }
 
@@ -99,6 +105,7 @@ function setupIpc() {
   ipcMain.handle("google-auth:get-config", () => config.firebase);
 
   ipcMain.on("google-auth:token", async (_e, { idToken, email }) => {
+    authResolved = true;
     try {
       const session = await authService.loginWithGoogle({ idToken, email });
       closeAuthWindow();
@@ -111,6 +118,7 @@ function setupIpc() {
   });
 
   ipcMain.on("google-auth:error", (_e, { error }) => {
+    authResolved = true;
     log.warn("google auth error", { error });
     closeAuthWindow();
     broadcast("auth:login-error", { error });
