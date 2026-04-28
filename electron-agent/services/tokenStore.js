@@ -3,14 +3,11 @@
 /**
  * Encrypted-at-rest token + agent state storage.
  *
- * - Token is stored using Electron's safeStorage (DPAPI on Windows,
- *   Keychain on macOS, libsecret on Linux). On unsupported platforms it falls
- *   back to plaintext but logs a warning so operators can spot it.
- * - Non-secret state (deviceId, lastUserId for UI rehydrate) is stored in a
- *   small JSON file beside it.
+ * Token is stored via Electron safeStorage (DPAPI on Windows, Keychain on
+ * macOS, libsecret on Linux). Falls back to plaintext with a warning when
+ * the OS keyring is unavailable.
  *
- * The store is process-local — only the Electron main process uses it. The
- * renderer never touches the filesystem directly.
+ * Non-secret state (deviceId, display email) lives in a small JSON file.
  */
 
 const fs = require("fs");
@@ -46,7 +43,7 @@ function safeStorageAvailable() {
   }
 }
 
-/* ───────────────── token (secret) ───────────────── */
+/* ───────────── token (secret) ───────────── */
 
 function saveToken(token) {
   if (!token || typeof token !== "string") return;
@@ -76,7 +73,6 @@ function loadToken() {
       try {
         return safeStorage.decryptString(buf);
       } catch (_) {
-        // File written before encryption was available — treat as plaintext.
         return buf.toString("utf8");
       }
     }
@@ -95,7 +91,7 @@ function clearToken() {
   }
 }
 
-/* ───────────────── non-secret state ───────────────── */
+/* ───────────── non-secret state ───────────── */
 
 function readState() {
   try {

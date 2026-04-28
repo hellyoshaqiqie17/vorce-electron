@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * Tiny structured logger. Keeps the agent dependency-free for logging while
- * still giving us level-tagged output for diagnostics.
+ * Tiny structured logger. Keeps the agent dependency-free for logging
+ * while still giving level-tagged output for diagnostics.
  */
 
 const levels = ["debug", "info", "warn", "error"];
@@ -25,13 +25,10 @@ function make(scope) {
       if (idx < minIdx) return;
       const line = format(lvl, scope, String(message), meta);
       if (lvl === "error") {
-        // eslint-disable-next-line no-console
         console.error(line);
       } else if (lvl === "warn") {
-        // eslint-disable-next-line no-console
         console.warn(line);
       } else {
-        // eslint-disable-next-line no-console
         console.log(line);
       }
     };

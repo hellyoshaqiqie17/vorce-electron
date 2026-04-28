@@ -1,9 +1,8 @@
 "use strict";
 
 /**
- * RAM usage % — uses `active` rather than `used` so cached pages don't make
- * every machine look 95% full. systeminformation aligns this with the
- * Activity Monitor / Task Manager view.
+ * RAM usage % via systeminformation.
+ * Uses `active` rather than `used` so cached pages don't inflate numbers.
  */
 
 const si = require("systeminformation");

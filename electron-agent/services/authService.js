@@ -1,15 +1,14 @@
 "use strict";
 
 /**
- * Authentication uses the existing VORCE backend.
+ * Authentication — uses the EXISTING VORCE backend login endpoint.
  *
  *   POST /auth/login  { email, password }
  *
- * The backend response is the single source of truth for `userId` and
- * `companyId`. We deliberately ignore those fields client-side: they are
- * carried inside the bearer token (JWT) and re-derived by the backend on
- * every subsequent call. Storing them locally would create an opportunity
- * for the client to lie about ownership, which the spec forbids.
+ * The backend response is the single source of truth for userId and
+ * companyId. We never store or transmit those fields client-side;
+ * they live inside the bearer token (JWT) and the backend re-derives
+ * them on every subsequent request.
  */
 
 const config = require("../core/config");
@@ -27,7 +26,7 @@ async function login({ email, password }) {
   const data = await api.post(
     config.endpoints.login,
     { email, password },
-    { auth: false } // no token yet
+    { auth: false }
   );
 
   const token = data && (data.token || data.accessToken || data.access_token);
@@ -40,8 +39,6 @@ async function login({ email, password }) {
 
   log.info("login ok");
 
-  // Surface only what the renderer needs for UI; never pass userId/companyId
-  // into business logic — those are the backend's concern.
   return {
     email,
     hasToken: true,
