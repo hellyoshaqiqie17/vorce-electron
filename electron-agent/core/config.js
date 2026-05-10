@@ -14,12 +14,6 @@ const DEFAULT_API_BASE_URL =
 const config = {
   apiBaseUrl: process.env.VORCE_API_BASE_URL || DEFAULT_API_BASE_URL,
 
-  endpoints: {
-    loginGoogle: "/api/Login/login-google-admin",
-    deviceRegister: "/device/register",
-    deviceMetrics: "/device/metrics",
-  },
-
   firebase: {
     apiKey: "AIzaSyDcc3oP_lGYg9ikBn0mq--wdH27aQ5LFlc",
     authDomain: "hora-7394b.firebaseapp.com",

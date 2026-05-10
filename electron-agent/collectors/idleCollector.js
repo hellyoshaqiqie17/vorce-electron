@@ -1,13 +1,5 @@
 "use strict";
 
-/**
- * Idle tracking via Electron powerMonitor.
- *
- * The spec references desktop-idle, but we use Electron's built-in
- * powerMonitor.getSystemIdleTime() — same OS-level signal, no native
- * build step, works on Windows / macOS / Linux out of the box.
- */
-
 const { powerMonitor } = require("electron");
 const config = require("../core/config");
 
@@ -28,19 +20,19 @@ function readIdleSeconds() {
   return powerMonitor.getSystemIdleTime();
 }
 
-function getIdle() {
-  let seconds = 0;
+function collectIdle() {
+  let idleSeconds = 0;
   try {
-    seconds = readIdleSeconds();
-  } catch (_err) {
-    seconds = 0;
+    idleSeconds = readIdleSeconds();
+  } catch (_) {
+    idleSeconds = 0;
   }
-  if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
+  if (!Number.isFinite(idleSeconds) || idleSeconds < 0) idleSeconds = 0;
 
   return {
-    isIdle: seconds >= config.idleThresholdSeconds,
-    seconds,
+    isIdle: idleSeconds >= config.idleThresholdSeconds,
+    idleSeconds: Math.round(idleSeconds),
   };
 }
 
-module.exports = { getIdle };
+module.exports = { collectIdle };

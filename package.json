@@ -13,5 +13,10 @@
   "license": "UNLICENSED",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "electron-store": "^11.0.2",
+    "firebase": "^12.12.1",
+    "uuid": "^14.0.0"
   }
 }

@@ -11,30 +11,170 @@
  */
 
 const path = require("path");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const http = require("http");
+const { exec } = require("child_process");
+const { shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+
+// Disable Edge/Chromium built-in sidebar before app is ready
+app.commandLine.appendSwitch("disable-features", "msEdgeSidebarV2,msEdgeSidebar,EdgeSidebar");
+app.commandLine.appendSwitch("disable-extensions");
+
+// Kill any process using a specific port (Windows only)
+function killProcessOnPort(port) {
+  return new Promise((resolve) => {
+    if (process.platform !== "win32") { resolve(); return; }
+    exec(`for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /PID %a /F`, (err) => {
+      if (err) {
+        log.info(`no process found using port ${port} or could not kill`);
+      } else {
+        log.info(`killed process using port ${port}`);
+      }
+      resolve();
+    });
+  });
+}
 
 const config = require("./core/config");
 const monitor = require("./core/monitor");
 const authService = require("./services/authService");
 const deviceService = require("./services/deviceService");
+const localApiServer = require("./services/localApiServer");
 const { make } = require("./utils/logger");
 
 const log = make("main");
 
 let mainWindow = null;
-let authWindow = null;
 let authResolved = false;
+let authServer = null;
+let authServerPort = 0;
+
+function startAuthServer(preferredPort = 0) {
+  return new Promise(async (resolve, reject) => {
+    if (authServer) { resolve(authServerPort); return; }
+
+    const tryListen = (port, retries = 3) => {
+      return new Promise((res, rej) => {
+        const server = http.createServer((req, res) => {
+          const url = `http://localhost:${port}${req.url}`;
+
+          // Check if this is the OAuth callback from Google/Firebase
+          if (req.url.startsWith("/__/auth/handler")) {
+            // Handle the callback
+            handleOAuthCallback(url);
+
+            // Respond to browser with success page
+            res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+            res.end(`<!DOCTYPE html>
+<html>
+<head>
+  <title>VORCE - Login Berhasil</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+    .container { padding: 2rem; }
+    h1 { color: #22c55e; margin-bottom: 0.5rem; }
+    p { color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✓ Login Berhasil</h1>
+    <p>Anda dapat menutup tab ini dan kembali ke aplikasi VORCE.</p>
+  </div>
+  <script>setTimeout(()=>window.close(), 3000)</script>
+</body>
+</html>`);
+            return;
+          }
+
+          // Default response
+          res.writeHead(200, { "Content-Type": "text/plain" });
+          res.end("ok");
+        });
+
+        server.on("error", async (err) => {
+          if (err.code === "EADDRINUSE" && retries > 0) {
+            log.warn(`Port ${port} in use, retrying in 500ms... (${retries} retries left)`);
+            await new Promise(r => setTimeout(r, 500));
+            tryListen(port, retries - 1).then(res).catch(rej);
+          } else {
+            rej(err);
+          }
+        });
+
+        server.listen(port, "127.0.0.1", () => {
+          authServer = server;
+          authServerPort = port;
+          log.info("auth callback server listening", { port });
+          res(port);
+        });
+      });
+    };
+
+    // Try preferred port first with retries
+    if (preferredPort !== 0) {
+      try {
+        const port = await tryListen(preferredPort, 5);
+        return resolve(port);
+      } catch (err) {
+        log.warn(`Could not bind to preferred port ${preferredPort}, trying fallback`);
+      }
+    }
+
+    // Fallback to unique high port
+    const fallbackPort = 28765;
+    try {
+      const port = await tryListen(fallbackPort, 3);
+      resolve(port);
+    } catch (err) {
+      // Last resort: random port
+      tryListen(0).then(resolve).catch(reject);
+    }
+  });
+}
+
+// Store session ID for OAuth flow
+let currentAuthSessionId = null;
+
+async function fetchGoogleAuthUrl(continueUri) {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${config.firebase.apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        continueUri,
+        providerId: "google.com",
+        oauthScope: "email profile openid",
+        customParameter: { prompt: "select_account" },
+      }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data.error?.message || JSON.stringify(data);
+    log.error("createAuthUri failed", { status: res.status, msg });
+    throw new Error(msg);
+  }
+  if (!data.authUri) throw new Error("Firebase tidak mengembalikan URL autentikasi.");
+
+  // Store session ID for later use in signInWithIdp
+  currentAuthSessionId = data.sessionId;
+  log.info("createAuthUri ok", { sessionId: currentAuthSessionId?.slice(0, 10) + "..." });
+
+  return data.authUri;
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 460,
-    height: 720,
-    minWidth: 420,
-    minHeight: 600,
-    title: "VORCE Agent",
+    width: 1440,
+    height: 920,
+    minWidth: 1180,
+    minHeight: 760,
+    title: "VORCE Device Intelligence",
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#f5f7ff",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -44,12 +184,40 @@ function createWindow() {
     },
   });
 
-  mainWindow.once("ready-to-show", () => mainWindow.show());
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.maximize();
+    mainWindow.show();
+  });
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
 
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+
+  // Hide any Edge/Chromium sidebar overlay after page loads
+  mainWindow.webContents.on("dom-ready", () => {
+    mainWindow.webContents.insertCSS(
+      ".__ms-edge-sidebar, .edge-sidebar, [data-testid='sidebar'], #sidebar-container, .sidebar-container, #edge-sidebar { display: none !important; width: 0 !important; visibility: hidden !important; }"
+    );
+  });
+
+  // Enable zoom shortcuts (Ctrl+Plus/Minus/0)
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.control && input.type === "keyDown") {
+      if (input.key === "=" || input.key === "+") {
+        event.preventDefault();
+        const currentZoom = mainWindow.webContents.getZoomLevel();
+        mainWindow.webContents.setZoomLevel(Math.min(currentZoom + 1, 5)); // Max zoom ~300%
+      } else if (input.key === "-") {
+        event.preventDefault();
+        const currentZoom = mainWindow.webContents.getZoomLevel();
+        mainWindow.webContents.setZoomLevel(Math.max(currentZoom - 1, -5)); // Min zoom ~33%
+      } else if (input.key === "0") {
+        event.preventDefault();
+        mainWindow.webContents.setZoomLevel(0); // Reset to 100%
+      }
+    }
+  });
 }
 
 function broadcast(channel, payload) {
@@ -58,81 +226,177 @@ function broadcast(channel, payload) {
   }
 }
 
-function openGoogleAuthWindow() {
-  if (authWindow && !authWindow.isDestroyed()) {
-    authWindow.focus();
-    return;
-  }
+/**
+ * IMPORTANT: Firebase/Google Cloud Console Setup Required
+ *
+ * 1. Go to https://console.cloud.google.com/apis/credentials
+ * 2. Find the OAuth 2.0 Client ID for your Firebase project (hora-7394b)
+ * 3. Add to "Authorized redirect URIs": http://localhost:8765/__/auth/handler
+ * 4. Save and wait 5 minutes for propagation
+ *
+ * Without this, you'll get "redirect_uri_mismatch" error.
+ */
+const AUTH_CALLBACK_PORT = 8765;
 
+function openGoogleAuthInBrowser() {
+  if (authResolved) return;
   authResolved = false;
 
-  authWindow = new BrowserWindow({
-    width: 480,
-    height: 640,
-    title: "VORCE - Masuk dengan Google",
-    autoHideMenuBar: true,
-    backgroundColor: "#0f172a",
-    parent: mainWindow,
-    modal: true,
-    webPreferences: {
-      preload: path.join(__dirname, "auth-preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-    },
-  });
-
-  authWindow.loadFile(
-    path.join(__dirname, "renderer", "google-auth.html")
-  );
-
-  authWindow.on("closed", () => {
-    authWindow = null;
+  startExternalBrowserOAuth().catch((err) => {
+    log.error("external oauth flow failed", { err: err.message });
+    const isRedirectMismatch = err.message?.toLowerCase().includes("redirect_uri") ||
+                               err.message?.toLowerCase().includes("mismatch");
+    if (isRedirectMismatch) {
+      // Get actual port used (may differ from preferred if port was in use)
+      const actualPort = authServerPort || AUTH_CALLBACK_PORT;
+      dialog.showErrorBox(
+        "VORCE Auth Setup Required",
+        "Error: redirect_uri_mismatch\n\n" +
+        "Anda perlu menambahkan localhost ke Authorized Redirect URIs:\n\n" +
+        "1. Buka https://console.cloud.google.com/apis/credentials\n" +
+        "2. Cari OAuth 2.0 Client ID untuk project hora-7394b\n" +
+        "3. Tambahkan ke 'Authorized Redirect URIs':\n" +
+        `   http://localhost:${actualPort}/__/auth/handler\n\n` +
+        "4. Save dan tunggu 5 menit, lalu coba lagi."
+      );
+    } else {
+      dialog.showErrorBox("VORCE Auth Error", err.message || "Unknown error");
+    }
     if (!authResolved) {
-      broadcast("auth:login-error", { error: "Jendela login ditutup." });
+      broadcast("auth:login-error", { error: err.message });
     }
   });
 }
 
-function closeAuthWindow() {
-  if (authWindow && !authWindow.isDestroyed()) {
-    authWindow.close();
-    authWindow = null;
+async function startExternalBrowserOAuth() {
+  // Reset auth server to get fresh port binding
+  if (authServer) {
+    authServer.close();
+    authServer = null;
+    authServerPort = 0;
+  }
+
+  // Force kill any process using the preferred port
+  await killProcessOnPort(AUTH_CALLBACK_PORT);
+  await new Promise(r => setTimeout(r, 200));
+
+  const port = await startAuthServer(AUTH_CALLBACK_PORT);
+  const continueUri = `http://localhost:${port}/__/auth/handler`;
+
+  const authUri = await fetchGoogleAuthUrl(continueUri);
+  log.info("opening external browser for oauth", { uri: authUri.slice(0, 80) + "..." });
+
+  // Open user's default browser (Chrome, Edge, Firefox, etc.)
+  await shell.openExternal(authUri);
+
+  // Show dialog to guide user
+  dialog.showMessageBox(mainWindow, {
+    type: "info",
+    title: "VORCE - Masuk dengan Google",
+    message: "Browser telah dibuka untuk login Google.",
+    detail: "Silakan pilih akun dan login di browser Anda. Setelah selesai, aplikasi akan otomatis melanjutkan.",
+    buttons: ["OK"],
+    defaultId: 0,
+  });
+}
+
+async function exchangeCodeForToken(code, redirectUri) {
+  if (!currentAuthSessionId) {
+    throw new Error("Session ID tidak tersedia. Silakan coba login lagi.");
+  }
+
+  // Exchange OAuth authorization code for Firebase ID token using sessionId
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${config.firebase.apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requestUri: redirectUri,
+        sessionId: currentAuthSessionId,
+        code,
+        returnSecureToken: true,
+        returnIdpCredential: true,
+      }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok || data.error) {
+    const msg = data.error?.message || JSON.stringify(data);
+    log.error("signInWithIdp failed", { msg });
+    throw new Error(msg || "Gagal menukar code dengan token");
+  }
+
+  // Clear session ID after use
+  currentAuthSessionId = null;
+
+  if (!data.idToken) {
+    throw new Error("Server tidak mengembalikan ID token");
+  }
+
+  return {
+    idToken: data.idToken,
+    refreshToken: data.refreshToken || "",
+    localId: data.localId || "",
+    email: data.email || "",
+    displayName: data.displayName || "",
+    oauthIdToken: data.oauthIdToken || "",
+    oauthAccessToken: data.oauthAccessToken || "",
+  };
+}
+
+async function handleOAuthCallback(url) {
+  log.info("oauth callback received", { url });
+
+  try {
+    // Parse URL to find authorization code
+    const urlObj = new URL(url);
+    const params = new URLSearchParams(urlObj.search);
+
+    // Log all params for debugging
+    const allParams = Object.fromEntries(params.entries());
+    log.info("callback params", allParams);
+
+    // Check for authorization code (OAuth 2.0 flow)
+    const code = params.get("code");
+
+    if (!code) {
+      log.error("no auth code found in callback", { url });
+      throw new Error("Kode autentikasi tidak ditemukan. Parameter: " + JSON.stringify(allParams).slice(0, 200));
+    }
+
+    log.info("auth code received, exchanging for token");
+
+    // Exchange code for Firebase ID token
+    const authPayload = await exchangeCodeForToken(code, url);
+    log.info("token received", { idToken: authPayload.idToken.slice(0, 20) + "..." });
+
+    const session = await authService.loginWithGoogle(authPayload);
+    authResolved = true;
+    broadcast("auth:login-success", session);
+
+    // Bring app to foreground
+    if (mainWindow) {
+      mainWindow.focus();
+      mainWindow.flashFrame(true);
+    }
+  } catch (err) {
+    log.warn("oauth callback failed", { err: err.message });
+    authResolved = true;
+    broadcast("auth:login-error", { error: err.message });
   }
 }
 
 function setupIpc() {
-  ipcMain.handle("google-auth:get-config", () => config.firebase);
-
-  ipcMain.on("google-auth:token", async (_e, { idToken, email }) => {
-    authResolved = true;
-    try {
-      const session = await authService.loginWithGoogle({ idToken, email });
-      closeAuthWindow();
-      broadcast("auth:login-success", session);
-    } catch (err) {
-      log.warn("google login backend failed", { err: err.message });
-      closeAuthWindow();
-      broadcast("auth:login-error", { error: err.message });
-    }
-  });
-
-  ipcMain.on("google-auth:error", (_e, { error }) => {
-    authResolved = true;
-    log.warn("google auth error", { error });
-    closeAuthWindow();
-    broadcast("auth:login-error", { error });
-  });
-
   ipcMain.handle("auth:open-google", async () => {
-    openGoogleAuthWindow();
+    openGoogleAuthInBrowser();
     return { ok: true };
   });
 
-  ipcMain.handle("auth:logout", () => {
-    monitor.stop();
+  ipcMain.handle("auth:logout", async () => {
+    await monitor.stop();
     broadcast("monitor:status-changed", { running: false });
-    authService.logout();
+    await authService.logout();
     return { ok: true };
   });
 
@@ -156,21 +420,27 @@ function setupIpc() {
       if (!authService.isLoggedIn()) {
         return { ok: false, error: "Belum login." };
       }
-      await deviceService.ensureRegistered();
+      const { deviceId, info, error } = await deviceService.ensureRegistered();
+
+      // Broadcast device info to renderer for display
+      if (info) {
+        broadcast("device:info", { deviceId, info, error, intervalMs: config.metricsIntervalMs });
+      }
 
       monitor.start({
         onSample: (sample) => broadcast("monitor:sample", sample),
       });
       broadcast("monitor:status-changed", { running: true });
-      return { ok: true };
+      return { ok: true, deviceId, error, intervalMs: config.metricsIntervalMs };
     } catch (err) {
       log.error("monitor start failed", { err: err.message });
       return { ok: false, error: err.message };
     }
   });
 
-  ipcMain.handle("monitor:stop", () => {
-    monitor.stop();
+  ipcMain.handle("monitor:stop", async () => {
+    await monitor.stop();
+    await deviceService.markOffline();
     broadcast("monitor:status-changed", { running: false });
     return { ok: true };
   });
@@ -185,12 +455,22 @@ function setupIpc() {
   }));
 }
 
-app.whenReady().then(() => {
+// Cleanup on app quit
+app.on("before-quit", async () => {
+  if (authServer) {
+    log.info("closing auth server");
+    authServer.close();
+    authServer = null;
+  }
+});
+
+app.whenReady().then(async () => {
   log.info("agent starting", {
     apiBaseUrl: config.apiBaseUrl,
     intervalMs: config.metricsIntervalMs,
   });
 
+  await localApiServer.start();
   setupIpc();
   createWindow();
 
@@ -199,11 +479,15 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("window-all-closed", () => {
-  monitor.stop();
+app.on("window-all-closed", async () => {
+  await monitor.stop();
+  await deviceService.markOffline();
   if (process.platform !== "darwin") app.quit();
 });
 
-app.on("before-quit", () => {
-  monitor.stop();
+app.on("before-quit", async () => {
+  await monitor.stop();
+  await deviceService.markOffline();
+  await localApiServer.stop();
+  if (authServer) { authServer.close(); authServer = null; }
 });

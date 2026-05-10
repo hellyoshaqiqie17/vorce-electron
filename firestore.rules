@@ -1,0 +1,211 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isRootAdmin() {
+      return request.auth.token.email == 'doni.smpn1@gmail.com';
+    }
+
+    function isSuperAdmin() {
+      return exists(/databases/$(database)/documents/super_admins/$(request.auth.token.email));
+    }
+
+    function isAdmin() {
+      return request.auth != null && (isRootAdmin() || isSuperAdmin());
+    }
+
+    function isDemoCompany(companyId) {
+      return companyId == 'CDEMO001';
+    }
+
+    function userProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.token.email));
+    }
+
+    function hasUserProfile() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.token.email));
+    }
+
+    function belongsToCompany(companyId) {
+      return request.auth != null
+        && hasUserProfile()
+        && userProfile().data.idCompany == companyId;
+    }
+
+    match /companies/{companyId} {
+      allow read: if isDemoCompany(companyId) || request.auth != null;
+      allow write: if isDemoCompany(companyId) || isAdmin();
+
+      match /files/{fileId} {
+        allow read: if isDemoCompany(companyId) || request.auth != null;
+        allow write: if isDemoCompany(companyId) || isAdmin();
+      }
+
+      match /logs/{logId} {
+        allow read: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /leaves/{leaveId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /tasks/{taskId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /faceid/{faceId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /reimbursements/{reimbursementId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /messages/{messageId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /typing_status/{userId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /online_users/{userId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /pinned_info/{docId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      match /subscriptions/{subscriptionId} {
+        allow read: if isDemoCompany(companyId) || request.auth != null;
+        allow write: if isAdmin();
+      }
+
+      match /device_monitoring/{deviceId} {
+        allow read: if isDemoCompany(companyId)
+          || isAdmin()
+          || belongsToCompany(companyId);
+
+        allow create, update: if isDemoCompany(companyId)
+          || isAdmin()
+          || (
+            belongsToCompany(companyId)
+            && request.resource.data.companyId == companyId
+            && request.resource.data.userId == request.auth.uid
+          );
+
+        allow delete: if isAdmin();
+
+        match /live_metrics/{metricId} {
+          allow read: if isDemoCompany(companyId)
+            || isAdmin()
+            || belongsToCompany(companyId);
+
+          allow create: if isDemoCompany(companyId)
+            || isAdmin()
+            || belongsToCompany(companyId);
+
+          allow update, delete: if isAdmin();
+        }
+
+        // Legacy activity_sessions subcollection (kept for backwards-compat
+        // with older agent builds; new agents write to device_sessions root).
+        match /activity_sessions/{sessionId} {
+          allow read: if isDemoCompany(companyId)
+            || isAdmin()
+            || belongsToCompany(companyId);
+
+          allow create, update: if isDemoCompany(companyId)
+            || isAdmin()
+            || belongsToCompany(companyId);
+
+          allow delete: if isAdmin();
+        }
+      }
+
+      // ============================================================
+      // VORCE Intelligence Pipeline (Electron agent v2+)
+      // Uses the same auth pattern as `leaves`, `tasks`, `messages`,
+      // etc. — any authenticated user can read/write within their
+      // company tree. Stricter checks (belongsToCompany + companyId
+      // match) were dropped because the existing `users/{userId}`
+      // documents are keyed by uid in this project, while the
+      // belongsToCompany() helper looks them up by email — causing
+      // false negatives on otherwise-valid writes.
+      // Documented at services/intelligence/README.md
+      // ============================================================
+
+      // Realtime presence — overwritten cheap doc, ~1 write/20s/device.
+      match /live_presence/{deviceId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Finalized sessions — one write per session end.
+      match /device_sessions/{sessionId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Compressed analytics snapshots — every ~20 minutes.
+      match /analytics_snapshots/{snapshotId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Anomaly events — event-only with cooldown.
+      match /anomaly_events/{eventId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Compact activity feed — mirror of finalized sessions.
+      match /activity_timeline/{entryId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Per-user rolling behavior profile — increment counters on session end.
+      match /employee_behavior/{userId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Daily incremental aggregate — docId: {userId}_{YYYYMMDD}
+      match /employee_behavior_daily/{dailyId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Weekly incremental aggregate — docId: {userId}_{YYYY_Www}
+      match /employee_behavior_weekly/{weeklyId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+
+      // Monthly incremental aggregate — docId: {userId}_{YYYY_MM}
+      match /employee_behavior_monthly/{monthlyId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /super_admins/{email} {
+      allow read, write: if isAdmin();
+    }
+
+    match /super_admin_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /mail/{mailId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /employee_location_log/{logId} {
+      allow read, write: if true;
+    }
+
+    match /employee_location/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

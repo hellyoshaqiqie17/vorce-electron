@@ -3,62 +3,87 @@
 /**
  * Device registration.
  *
- *   POST /device/register
- *   Headers: Authorization: Bearer <token>
- *   Body:    { hostname, os, cpuModel, totalRam }
+ *   POST /api/device/register
+ *   Headers: X-VORCE-Agent-Secret: <local-secret>
+ *   Body:    { deviceId, binding, info, status }
  *
- * The backend extracts userId/companyId from the bearer token and creates
- * the device document at:
- *   companies/{companyId}/users/{userId}/devices/{deviceId}
- *
- * We NEVER send userId or companyId in the request body.
+ * The local API writes the device document at:
+ *   companies/{companyId}/device_monitoring/{deviceId}
  */
 
-const config = require("../core/config");
-const api = require("./apiClient");
 const tokenStore = require("./tokenStore");
 const { collectDeviceInfo } = require("../collectors/deviceInfo");
+const deviceIdentity = require("./deviceIdentity");
+const userBindingService = require("./userBindingService");
+const localApiClient = require("./localApiClient");
 const { make } = require("../utils/logger");
 
 const log = make("deviceService");
 
+let registrationState = null;
+
 async function registerDevice() {
   const info = await collectDeviceInfo();
+  const deviceId = await deviceIdentity.getOrCreateDeviceId();
+  const binding = await userBindingService.getAuthenticatedBinding();
 
-  const payload = {
-    hostname: info.hostname,
-    os: info.os,
-    cpuModel: info.cpuModel,
-    totalRam: info.totalRamGb,
-  };
+  log.info("registering device", {
+    deviceId,
+    companyId: binding.companyId,
+    userId: binding.userId,
+  });
 
-  log.info("registering device", payload);
+  await localApiClient.registerDevice({
+    deviceId,
+    binding,
+    info,
+    status: "online",
+  });
 
-  const data = await api.post(config.endpoints.deviceRegister, payload);
-  const deviceId = data && (data.deviceId || data.id);
-  if (!deviceId) {
-    throw new Error("Server tidak mengembalikan deviceId.");
-  }
-
+  registrationState = { deviceId, info, binding, registered: true };
   tokenStore.setDeviceId(deviceId);
   log.info("device registered", { deviceId });
 
-  return { deviceId };
+  return registrationState;
 }
 
 async function ensureRegistered() {
-  const cached = tokenStore.getDeviceId();
-  if (cached) return { deviceId: cached, registered: false };
-  const out = await registerDevice();
-  return { ...out, registered: true };
+  if (registrationState?.deviceId && registrationState?.binding) {
+    return { ...registrationState, registered: false };
+  }
+  return registerDevice();
 }
 
 function getDeviceId() {
   return tokenStore.getDeviceId();
 }
 
+function getRegistrationState() {
+  return registrationState;
+}
+
+function resetRegistrationState() {
+  registrationState = null;
+}
+
+async function markOffline() {
+  if (!registrationState?.deviceId || !registrationState?.binding) return;
+  try {
+    await localApiClient.updateStatus({
+      deviceId: registrationState.deviceId,
+      binding: registrationState.binding,
+      status: "offline",
+    });
+  } catch (err) {
+    log.warn("failed to mark device offline", { err: err.message });
+  }
+}
+
 module.exports = {
   registerDevice,
   ensureRegistered,
   getDeviceId,
+  getRegistrationState,
+  resetRegistrationState,
+  markOffline,
 };

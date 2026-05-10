@@ -26,6 +26,7 @@ const channels = {
     "auth:login-error",
     "monitor:sample",
     "monitor:status-changed",
+    "device:info",
   ],
 };
 

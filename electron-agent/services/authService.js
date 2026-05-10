@@ -10,69 +10,55 @@
  * companyId. We never store or transmit those fields client-side.
  */
 
-const os = require("os");
-const config = require("../core/config");
-const api = require("./apiClient");
 const tokenStore = require("./tokenStore");
+const firebaseClient = require("../firebase/firebaseClient");
+const userBindingService = require("./userBindingService");
+const deviceService = require("./deviceService");
 const { make } = require("../utils/logger");
 
 const log = make("authService");
 
-function getDeviceInfo() {
-  const platform = os.platform();
-  const osName =
-    platform === "win32"
-      ? "Windows"
-      : platform === "darwin"
-        ? "macOS"
-        : "Linux";
-  return `Electron Agent (${osName})`;
-}
-
-async function loginWithGoogle({ idToken, email }) {
-  if (!idToken) {
-    throw new Error("Firebase ID token tidak tersedia.");
-  }
-
-  const deviceInfo = getDeviceInfo();
-
-  const data = await api.post(
-    config.endpoints.loginGoogle,
-    { idToken, deviceInfo },
-    { auth: false }
-  );
-
-  const token = data && (data.token || data.accessToken || data.access_token);
-  if (!token) {
-    throw new Error("Server tidak mengembalikan token autentikasi.");
-  }
+async function loginWithGoogle({ oauthIdToken, oauthAccessToken }) {
+  const user = await firebaseClient.signInWithGoogleCredential({
+    oauthIdToken,
+    oauthAccessToken,
+  });
+  const token = await user.getIdToken();
+  const binding = await userBindingService.getAuthenticatedBinding();
 
   tokenStore.saveToken(token);
-  tokenStore.setDisplayEmail(email || "");
+  tokenStore.setDisplayEmail(binding.email || user.email || "");
 
   log.info("login ok (google)");
 
   return {
-    email: email || "",
+    email: binding.email || user.email || "",
+    displayName: binding.displayName || user.displayName || "",
+    companyId: binding.companyId,
+    companyName: binding.companyName,
     hasToken: true,
   };
 }
 
 function isLoggedIn() {
-  return Boolean(tokenStore.loadToken());
+  return Boolean(firebaseClient.getCurrentUser());
 }
 
-function logout() {
+async function logout() {
+  await deviceService.markOffline();
+  await firebaseClient.signOutFirebase();
   tokenStore.clearToken();
-  tokenStore.clearDeviceId();
   tokenStore.setDisplayEmail(null);
+  deviceService.resetRegistrationState();
   log.info("logged out");
 }
 
 function currentSession() {
+  const user = firebaseClient.getCurrentUser();
   return {
-    email: tokenStore.getDisplayEmail(),
-    hasToken: isLoggedIn(),
+    email: user?.email || tokenStore.getDisplayEmail(),
+    displayName: user?.displayName || "",
+    hasToken: Boolean(user),
     deviceId: tokenStore.getDeviceId(),
   };
 }
