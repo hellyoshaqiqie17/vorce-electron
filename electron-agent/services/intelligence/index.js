@@ -18,6 +18,8 @@ const anomalyEngineMod = require("./anomalyEngine");
 const snapshotEngineMod = require("./snapshotEngine");
 const aggregationEngineMod = require("./aggregationEngine");
 const localApiClient = require("../localApiClient");
+const mqttPresence = require("../mqttPresenceService");
+const config = require("../../core/config");
 const { make } = require("../../utils/logger");
 
 const log = make("intelligence");
@@ -54,6 +56,10 @@ function init({ intervalMs = 5000 } = {}) {
   presence = presenceEngineMod.createEngine({
     log,
     writer: async (payload) => {
+      const published = await mqttPresence.publishPresence(payload);
+      if (published) return;
+      if (!config.mqtt.fallbackToFirestore) return;
+
       await localApiClient.upsertPresence({
         deviceId: payload.deviceId,
         binding: { companyId: payload.companyId, userId: payload.userId },
@@ -149,6 +155,7 @@ async function flush({ deviceId, binding } = {}) {
   try { await session.flush(); } catch (err) { log.warn("session flush failed", { err: err.message }); }
   try { await snapshot.flushNow(); } catch (err) { log.warn("snapshot flushNow failed", { err: err.message }); }
   if (deviceId && binding) {
+    try { await mqttPresence.publishOffline({ deviceId, binding }); } catch (err) { log.warn("mqtt offline failed", { err: err.message }); }
     try { await presence.markOffline({ deviceId, binding }); } catch (err) { log.warn("presence offline failed", { err: err.message }); }
   }
 }
@@ -162,6 +169,7 @@ function reset() {
 
 function stop() {
   snapshot?.stop();
+  mqttPresence.disconnect();
 }
 
 module.exports = { init, process, flush, reset, stop };
