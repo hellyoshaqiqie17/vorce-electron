@@ -15,7 +15,6 @@
     "active-win": "^8.2.1",
     "express": "^5.2.1",
     "firebase": "^12.13.0",
-    "mqtt": "^5.14.1",
     "node-machine-id": "^1.1.12",
     "pidusage": "^4.0.1",
     "systeminformation": "^5.22.11"
