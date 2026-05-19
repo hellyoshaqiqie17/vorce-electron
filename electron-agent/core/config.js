@@ -38,7 +38,7 @@ const config = {
   firestorePresenceBackupMs: Number(process.env.VORCE_FIRESTORE_PRESENCE_BACKUP_MS) || 3_600_000,
   firestoreHeartbeatMs: Number(process.env.VORCE_FIRESTORE_HEARTBEAT_MS) || 3_600_000,
   statsCheckpointMs: Number(process.env.VORCE_STATS_CHECKPOINT_MS) || 60_000,
-  realtimeStatsSummaryMs: Number(process.env.VORCE_REALTIME_STATS_SUMMARY_MS) || 1_800_000,
+  realtimeStatsSummaryMs: Number(process.env.VORCE_REALTIME_STATS_SUMMARY_MS) || 300_000,
   firestoreStatsSummaryMs: Number(process.env.VORCE_FIRESTORE_STATS_SUMMARY_MS) || 0,
   firestoreStatsSummaryOnStop: process.env.VORCE_FIRESTORE_STATS_ON_STOP !== "false",
 
