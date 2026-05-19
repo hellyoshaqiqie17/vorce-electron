@@ -124,6 +124,24 @@ async function writeAnomaly(payload) {
   log.debug("anomaly written", { type: payload.type, severity: payload.severity });
 }
 
+function tsFromSecondsOrNow(sec) {
+  return tsFromSeconds(sec) || serverTimestamp();
+}
+
+async function writeStatsSummary(payload) {
+  need("companyId", payload.companyId);
+  need("summaryId", payload.summaryId);
+  const ref = doc(db(), "companies", payload.companyId, "stats_summaries", payload.summaryId);
+  await setDoc(ref, {
+    ...payload,
+    startedAt: tsFromSecondsOrNow(payload.startedAt),
+    lastSampleAt: tsFromSeconds(payload.lastSampleAt),
+    generatedAt: tsFromSecondsOrNow(payload.generatedAt),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  log.debug("stats summary written", { summaryId: payload.summaryId, final: payload.final });
+}
+
 // ---- Aggregation writers (increment-based, no reads) -----------------------
 
 /**
@@ -192,6 +210,7 @@ module.exports = {
   writeFinalizedSession,
   writeSnapshot,
   writeAnomaly,
+  writeStatsSummary,
   incrementDailyAnalytics,
   incrementWeeklyAnalytics,
   incrementMonthlyAnalytics,

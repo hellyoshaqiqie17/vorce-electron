@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "status": {
+      "$companyId": {
+        "$deviceId": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    },
+    "stats": {
+      "$companyId": {
+        "$deviceId": {
+          ".read": "auth != null",
+          ".write": "auth != null && newData.child('companyId').val() == $companyId && newData.child('deviceId').val() == $deviceId"
+        }
+      }
+    }
+  }
+}

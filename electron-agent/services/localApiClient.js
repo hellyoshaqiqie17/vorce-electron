@@ -93,6 +93,10 @@ function writeAnomaly(payload) {
   return request("POST", "/api/device/anomaly", payload);
 }
 
+function writeStatsSummary(payload) {
+  return request("POST", "/api/device/stats-summary", payload);
+}
+
 function writeDailyAnalytics(payload) {
   return request("POST", "/api/device/analytics/daily", payload);
 }
@@ -117,6 +121,7 @@ module.exports = {
   writeFinalizedSession,
   writeSnapshot,
   writeAnomaly,
+  writeStatsSummary,
   writeDailyAnalytics,
   writeWeeklyAnalytics,
   writeMonthlyAnalytics,

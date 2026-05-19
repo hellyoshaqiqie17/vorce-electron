@@ -16,8 +16,9 @@
  */
 
 const semantic = require("./semanticAnalyzer");
+const config = require("../../core/config");
 
-const HEARTBEAT_MS = 20 * 1000;
+const HEARTBEAT_MS = config.realtimePresenceIntervalMs;
 const CPU_DELTA = 10;
 const RAM_DELTA = 10;
 

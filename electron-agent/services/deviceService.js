@@ -16,6 +16,7 @@ const { collectDeviceInfo } = require("../collectors/deviceInfo");
 const deviceIdentity = require("./deviceIdentity");
 const userBindingService = require("./userBindingService");
 const localApiClient = require("./localApiClient");
+const config = require("../core/config");
 const { make } = require("../utils/logger");
 
 const log = make("deviceService");
@@ -33,12 +34,14 @@ async function registerDevice() {
     userId: binding.userId,
   });
 
-  await localApiClient.registerDevice({
-    deviceId,
-    binding,
-    info,
-    status: "online",
-  });
+  if (config.firestoreDeviceRegistrationEnabled) {
+    await localApiClient.registerDevice({
+      deviceId,
+      binding,
+      info,
+      status: "online",
+    });
+  }
 
   registrationState = { deviceId, info, binding, registered: true };
   tokenStore.setDeviceId(deviceId);
@@ -68,6 +71,7 @@ function resetRegistrationState() {
 
 async function markOffline() {
   if (!registrationState?.deviceId || !registrationState?.binding) return;
+  if (!config.firestoreDeviceStatusEnabled) return;
   try {
     await localApiClient.updateStatus({
       deviceId: registrationState.deviceId,

@@ -22,6 +22,7 @@ const { collectProcess, collectTopProcesses } = require("../collectors/processCo
 const deviceService = require("../services/deviceService");
 const intelligence = require("../services/intelligence");
 const localApiClient = require("../services/localApiClient");
+const statsBatchBuffer = require("../services/statsBatchBuffer");
 const { make } = require("../utils/logger");
 
 const log = make("monitor");
@@ -29,6 +30,7 @@ const log = make("monitor");
 let timer = null;
 let running = false;
 let onSample = null;
+let lastFirestoreHeartbeatAt = 0;
 
 async function settle(promise, fallback) {
   try {
@@ -127,10 +129,27 @@ async function tick() {
     log.warn("intelligence pipeline failed", { err: err.message, status: err.status });
   }
 
-  // Lightweight heartbeat so devices don’t look offline if presence is debounced.
   try {
-    if (localApiClient.isConfigured()) {
+    statsBatchBuffer.observe({
+      deviceId,
+      binding: state.binding,
+      sample,
+      intervalSeconds: Math.max(1, Math.round(config.metricsIntervalMs / 1000)),
+    });
+  } catch (err) {
+    log.warn("stats buffer observe failed", { err: err.message });
+  }
+
+  // Firestore heartbeat is disabled by default. Realtime presence is handled by RTDB.
+  try {
+    const now = Date.now();
+    if (
+      config.firestoreHeartbeatEnabled &&
+      localApiClient.isConfigured() &&
+      now - lastFirestoreHeartbeatAt >= config.firestoreHeartbeatMs
+    ) {
       await localApiClient.heartbeat({ deviceId, binding: state.binding });
+      lastFirestoreHeartbeatAt = now;
     }
   } catch (err) {
     log.debug("heartbeat skipped", { err: err.message });
@@ -143,6 +162,8 @@ function start({ onSample: cb } = {}) {
   onSample = cb || null;
   intelligence.init({ intervalMs: config.metricsIntervalMs });
   intelligence.reset();
+  statsBatchBuffer.start();
+  lastFirestoreHeartbeatAt = 0;
   log.info("starting", { intervalMs: config.metricsIntervalMs });
 
   tick().catch(() => {});
@@ -162,6 +183,7 @@ async function stop() {
   try {
     const state = deviceService.getRegistrationState();
     await intelligence.flush({ deviceId: state?.deviceId, binding: state?.binding });
+    await statsBatchBuffer.stop({ flushFirestore: true });
   } catch (err) {
     log.warn("intelligence flush failed", { err: err.message });
   }

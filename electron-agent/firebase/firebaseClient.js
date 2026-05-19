@@ -9,6 +9,7 @@ const {
   onAuthStateChanged,
 } = require("firebase/auth");
 const { getFirestore } = require("firebase/firestore");
+const { getDatabase } = require("firebase/database");
 const config = require("../core/config");
 const { make } = require("../utils/logger");
 
@@ -16,12 +17,14 @@ const log = make("firebaseClient");
 
 let authInstance = null;
 let dbInstance = null;
+let realtimeDbInstance = null;
 
 function initFirebase() {
   const app = getApps().length ? getApp() : initializeApp(config.firebase);
   if (!authInstance) authInstance = getAuth(app);
   if (!dbInstance) dbInstance = getFirestore(app);
-  return { app, auth: authInstance, db: dbInstance };
+  if (!realtimeDbInstance) realtimeDbInstance = getDatabase(app);
+  return { app, auth: authInstance, db: dbInstance, realtimeDb: realtimeDbInstance };
 }
 
 function getAuthInstance() {
@@ -30,6 +33,10 @@ function getAuthInstance() {
 
 function getDb() {
   return initFirebase().db;
+}
+
+function getRealtimeDb() {
+  return initFirebase().realtimeDb;
 }
 
 function getCurrentUser() {
@@ -88,6 +95,7 @@ module.exports = {
   initFirebase,
   getAuthInstance,
   getDb,
+  getRealtimeDb,
   getCurrentUser,
   signInWithGoogleCredential,
   waitForAuthenticatedUser,

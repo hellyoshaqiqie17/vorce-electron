@@ -191,6 +191,17 @@ function createApp() {
     res.json({ ok: true, data: { eventId: event.eventId } });
   }));
 
+  app.post("/api/device/stats-summary", asyncRoute(async (req, res) => {
+    const { deviceId, binding, summary } = req.body || {};
+    if (!deviceId || !binding?.companyId || !binding?.userId || !summary?.summaryId) {
+      res.status(400).json({ ok: false, error: "deviceId, binding, summary.summaryId wajib diisi." });
+      return;
+    }
+    await requireFirebaseUser();
+    await intelligenceStore.writeStatsSummary({ ...summary, deviceId, companyId: binding.companyId, userId: binding.userId });
+    res.json({ ok: true, data: { summaryId: summary.summaryId } });
+  }));
+
   // ---- Analytics aggregation endpoints --------------------------------------
 
   function analyticsHandler(writerFn) {

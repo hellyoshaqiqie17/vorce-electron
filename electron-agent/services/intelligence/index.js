@@ -18,6 +18,9 @@ const anomalyEngineMod = require("./anomalyEngine");
 const snapshotEngineMod = require("./snapshotEngine");
 const aggregationEngineMod = require("./aggregationEngine");
 const localApiClient = require("../localApiClient");
+const realtimePresenceStore = require("../realtimePresenceStore");
+const statsBatchBuffer = require("../statsBatchBuffer");
+const config = require("../../core/config");
 const { make } = require("../../utils/logger");
 
 const log = make("intelligence");
@@ -28,6 +31,7 @@ let anomaly = null;
 let snapshot = null;
 let aggregation = null;
 let intervalSeconds = 5;
+let lastFirestorePresenceBackupAt = 0;
 
 function init({ intervalMs = 5000 } = {}) {
   intervalSeconds = Math.max(1, Math.round(intervalMs / 1000));
@@ -35,16 +39,20 @@ function init({ intervalMs = 5000 } = {}) {
   session = sessionEngineMod.createEngine({
     log,
     writer: async (payload) => {
-      await localApiClient.writeFinalizedSession({
-        deviceId: payload.deviceId,
-        binding: { companyId: payload.companyId, userId: payload.userId },
-        session: payload,
-      });
+      if (config.firestoreSessionEventsEnabled) {
+        await localApiClient.writeFinalizedSession({
+          deviceId: payload.deviceId,
+          binding: { companyId: payload.companyId, userId: payload.userId },
+          session: payload,
+        });
+      }
       // Inform snapshot engine
       snapshot?.onSessionFinalized(payload);
       // Fan out to incremental analytics aggregation (daily/weekly/monthly)
       try {
-        await aggregation?.onSessionFinalized(payload);
+        if (config.firestoreAggregatesEnabled) {
+          await aggregation?.onSessionFinalized(payload);
+        }
       } catch (err) {
         log.warn("aggregation onSessionFinalized failed", { err: err.message });
       }
@@ -54,31 +62,50 @@ function init({ intervalMs = 5000 } = {}) {
   presence = presenceEngineMod.createEngine({
     log,
     writer: async (payload) => {
+      const now = Date.now();
+
+      try {
+        await realtimePresenceStore.upsertPresence(payload);
+      } catch (err) {
+        log.warn("realtime presence failed", { err: err.message });
+      }
+
+      if (!config.firestoreRealtimePresenceEnabled) {
+        return;
+      }
+
+      if (now - lastFirestorePresenceBackupAt < config.firestorePresenceBackupMs) {
+        return;
+      }
+
       await localApiClient.upsertPresence({
         deviceId: payload.deviceId,
         binding: { companyId: payload.companyId, userId: payload.userId },
         presence: payload,
       });
+      lastFirestorePresenceBackupAt = now;
     },
   });
 
   anomaly = anomalyEngineMod.createEngine({
     log,
     writer: async (event) => {
+      snapshot?.onAnomaly();
+      session?.markAnomaly();
+      statsBatchBuffer.markAnomaly();
+      if (!config.firestoreAnomalyEventsEnabled) return;
       await localApiClient.writeAnomaly({
         deviceId: event.deviceId,
         binding: { companyId: event.companyId, userId: event.userId },
         event,
       });
-      snapshot?.onAnomaly();
-      // Tag the active session as anomalous
-      session?.markAnomaly();
     },
   });
 
   snapshot = snapshotEngineMod.createEngine({
     log,
     writer: async (payload) => {
+      if (!config.firestoreSnapshotsEnabled) return;
       await localApiClient.writeSnapshot({
         deviceId: payload.deviceId,
         binding: { companyId: payload.companyId, userId: payload.userId },
@@ -149,6 +176,7 @@ async function flush({ deviceId, binding } = {}) {
   try { await session.flush(); } catch (err) { log.warn("session flush failed", { err: err.message }); }
   try { await snapshot.flushNow(); } catch (err) { log.warn("snapshot flushNow failed", { err: err.message }); }
   if (deviceId && binding) {
+    try { await realtimePresenceStore.markOffline({ deviceId, binding }); } catch (err) { log.warn("realtime offline failed", { err: err.message }); }
     try { await presence.markOffline({ deviceId, binding }); } catch (err) { log.warn("presence offline failed", { err: err.message }); }
   }
 }
@@ -158,6 +186,7 @@ function reset() {
   presence?.reset();
   anomaly?.reset();
   snapshot?.reset();
+  lastFirestorePresenceBackupAt = 0;
 }
 
 function stop() {

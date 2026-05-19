@@ -17,6 +17,7 @@ const config = {
   firebase: {
     apiKey: "AIzaSyDcc3oP_lGYg9ikBn0mq--wdH27aQ5LFlc",
     authDomain: "hora-7394b.firebaseapp.com",
+    databaseURL: "https://hora-7394b-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "hora-7394b",
     storageBucket: "hora-7394b.firebasestorage.app",
     messagingSenderId: "544676101248",
@@ -25,6 +26,21 @@ const config = {
   },
 
   metricsIntervalMs: Number(process.env.VORCE_METRICS_INTERVAL_MS) || 5_000,
+  realtimePresenceIntervalMs: Number(process.env.VORCE_REALTIME_PRESENCE_INTERVAL_MS) || 5_000,
+  firestoreRealtimePresenceEnabled: process.env.VORCE_FIRESTORE_REALTIME_PRESENCE === "true",
+  firestoreHeartbeatEnabled: process.env.VORCE_FIRESTORE_HEARTBEAT === "true",
+  firestoreDeviceStatusEnabled: process.env.VORCE_FIRESTORE_DEVICE_STATUS === "true",
+  firestoreDeviceRegistrationEnabled: process.env.VORCE_FIRESTORE_DEVICE_REGISTRATION === "true",
+  firestoreSessionEventsEnabled: process.env.VORCE_FIRESTORE_SESSION_EVENTS === "true",
+  firestoreSnapshotsEnabled: process.env.VORCE_FIRESTORE_SNAPSHOTS === "true",
+  firestoreAnomalyEventsEnabled: process.env.VORCE_FIRESTORE_ANOMALY_EVENTS === "true",
+  firestoreAggregatesEnabled: process.env.VORCE_FIRESTORE_AGGREGATES === "true",
+  firestorePresenceBackupMs: Number(process.env.VORCE_FIRESTORE_PRESENCE_BACKUP_MS) || 3_600_000,
+  firestoreHeartbeatMs: Number(process.env.VORCE_FIRESTORE_HEARTBEAT_MS) || 3_600_000,
+  statsCheckpointMs: Number(process.env.VORCE_STATS_CHECKPOINT_MS) || 60_000,
+  realtimeStatsSummaryMs: Number(process.env.VORCE_REALTIME_STATS_SUMMARY_MS) || 1_800_000,
+  firestoreStatsSummaryMs: Number(process.env.VORCE_FIRESTORE_STATS_SUMMARY_MS) || 0,
+  firestoreStatsSummaryOnStop: process.env.VORCE_FIRESTORE_STATS_ON_STOP !== "false",
 
   http: {
     timeoutMs: 15_000,
@@ -40,6 +56,7 @@ const config = {
   storage: {
     tokenFile: "vorce-agent-token.bin",
     stateFile: "vorce-agent-state.json",
+    statsBufferFile: "vorce-agent-stats-buffer.json",
   },
 
   idleThresholdSeconds: 60,
