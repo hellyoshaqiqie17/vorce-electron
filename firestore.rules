@@ -181,6 +181,12 @@ service cloud.firestore {
       match /employee_behavior_monthly/{monthlyId} {
         allow read, write: if isDemoCompany(companyId) || request.auth != null;
       }
+
+      // Final stats summary from Electron agent — written only on app close/stop.
+      // docId: {userId}_{deviceId}_{YYYY-MM-DD}
+      match /stats_summaries/{summaryId} {
+        allow read, write: if isDemoCompany(companyId) || request.auth != null;
+      }
     }
 
     match /users/{userId} {
