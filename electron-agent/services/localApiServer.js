@@ -198,7 +198,14 @@ function createApp() {
       return;
     }
     await requireFirebaseUser();
-    await intelligenceStore.writeStatsSummary({ ...summary, deviceId, companyId: binding.companyId, userId: binding.userId });
+    await intelligenceStore.writeStatsSummary({
+      ...summary,
+      deviceId,
+      companyId: binding.companyId,
+      userId: binding.userId,
+      userEmail: summary.userEmail || binding.email || "",
+      userName: summary.userName || binding.displayName || ""
+    });
     res.json({ ok: true, data: { summaryId: summary.summaryId } });
   }));
 

@@ -37,6 +37,8 @@ function freshState() {
     date: todayKey(),
     companyId: null,
     userId: null,
+    userEmail: null,
+    userName: null,
     deviceId: null,
     totalOnlineSeconds: 0,
     totalActiveSeconds: 0,
@@ -102,6 +104,8 @@ function resetForContext({ deviceId, binding }) {
   state = freshState();
   state.companyId = binding.companyId;
   state.userId = binding.userId;
+  state.userEmail = binding.email || binding.userEmail || null;
+  state.userName = binding.displayName || binding.userName || null;
   state.deviceId = deviceId;
   lastObservedAtSec = 0;
 }
@@ -171,6 +175,8 @@ function buildSummary({ final = false } = {}) {
     summaryId: `${state.userId}_${state.deviceId}_${state.date}`,
     companyId: state.companyId,
     userId: state.userId,
+    userEmail: state.userEmail || "",
+    userName: state.userName || "",
     deviceId: state.deviceId,
     date: state.date,
     final,
@@ -257,15 +263,31 @@ async function flushRealtimeSummary({ force = false } = {}) {
 
 async function flushFirestoreSummary({ final = false, force = false } = {}) {
   const summary = buildSummary({ final });
-  if (!summary || !localApiClient.isConfigured()) return false;
+  if (!summary || !localApiClient.isConfigured()) {
+    log.warn("flushFirestoreSummary skipped: no summary or api not configured");
+    return false;
+  }
   const now = Date.now();
-  if (!force && config.firestoreStatsSummaryMs <= 0) return false;
-  if (!force && now - (state.lastFirestoreSummaryAt * 1000 || 0) < config.firestoreStatsSummaryMs) return false;
-  await localApiClient.writeStatsSummary({
-    deviceId: summary.deviceId,
-    binding: { companyId: summary.companyId, userId: summary.userId },
-    summary,
-  });
+  if (!force && config.firestoreStatsSummaryMs <= 0) {
+    log.debug("flushFirestoreSummary skipped: periodical write disabled (ms <= 0)");
+    return false;
+  }
+  if (!force && now - (state.lastFirestoreSummaryAt * 1000 || 0) < config.firestoreStatsSummaryMs) {
+    log.debug("flushFirestoreSummary skipped: throttle active");
+    return false;
+  }
+  log.info("flushing stats summary to Firestore", { summaryId: summary.summaryId, final, userEmail: summary.userEmail });
+  try {
+    await localApiClient.writeStatsSummary({
+      deviceId: summary.deviceId,
+      binding: { companyId: summary.companyId, userId: summary.userId, email: summary.userEmail, displayName: summary.userName },
+      summary,
+    });
+    log.info("stats summary flushed to Firestore successfully", { summaryId: summary.summaryId });
+  } catch (err) {
+    log.error("failed to flush stats summary to Firestore", { summaryId: summary.summaryId, err: err.message });
+    throw err;
+  }
   state.lastFirestoreSummaryAt = Math.floor(now / 1000);
   persist();
   return true;
