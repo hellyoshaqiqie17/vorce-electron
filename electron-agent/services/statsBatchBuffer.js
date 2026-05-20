@@ -115,6 +115,9 @@ function ensureContext({ deviceId, binding }) {
   const date = todayKey();
   const changed = state.companyId !== binding.companyId || state.userId !== binding.userId || state.deviceId !== deviceId || state.date !== date;
   if (changed) resetForContext({ deviceId, binding });
+  // Always refresh userEmail and userName from binding in case they were missing
+  state.userEmail = binding.email || binding.userEmail || state.userEmail || null;
+  state.userName = binding.displayName || binding.userName || state.userName || null;
   context = { deviceId, binding: { ...binding } };
   return true;
 }
