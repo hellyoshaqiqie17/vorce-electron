@@ -45,10 +45,7 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "vorcelogo/vorce.png",
-      "uninstallerIcon": "vorcelogo/vorce.png",
-      "installerHeaderIcon": "vorcelogo/vorce.png"
+      "allowToChangeInstallationDirectory": true
     },
     "protocols": {
       "name": "VORCE Agent",
