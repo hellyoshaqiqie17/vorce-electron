@@ -242,6 +242,7 @@ function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.maximize();
+    mainWindow.webContents.setZoomFactor(0.85);
     mainWindow.show();
   });
   mainWindow.on("closed", () => {
