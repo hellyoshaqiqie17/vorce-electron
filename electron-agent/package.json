@@ -7,10 +7,59 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging",
-    "rebuild": "electron-rebuild"
+    "rebuild": "electron-rebuild",
+    "build": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --mac --linux",
+    "build:dir": "electron-builder --win --dir"
   },
   "author": "VORCE",
   "license": "UNLICENSED",
+  "build": {
+    "appId": "com.vorce.agent",
+    "productName": "VORCE Agent",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "vorcelogo/vorce.png"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "vorcelogo/vorce.png",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "vorcelogo/vorce.png",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "vorcelogo/vorce.png",
+      "uninstallerIcon": "vorcelogo/vorce.png",
+      "installerHeaderIcon": "vorcelogo/vorce.png"
+    },
+    "protocols": {
+      "name": "VORCE Agent",
+      "schemes": [
+        "vorce-agent"
+      ]
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!node_modules/.cache/**"
+    ],
+    "extraResources": [
+      "vorcelogo/**"
+    ]
+  },
   "dependencies": {
     "active-win": "^8.2.1",
     "express": "^5.2.1",
@@ -21,6 +70,7 @@
   },
   "devDependencies": {
     "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9"
   },
   "engines": {

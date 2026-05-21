@@ -144,7 +144,7 @@ function renderRoute(route) {
     devices: `
       <section class="route-grid">
         ${panel("Current Device Intelligence", "Live state, heartbeat, focused app, and health posture.", `<div class="device-intel">${metricTile("Device state", running ? "Online" : "Standby", running ? "good" : "")}${metricTile("Health score", health)}${metricTile("CPU source", app.appName || "—")}${metricTile("RAM pressure", pct(ram), ram > 88 ? "bad" : "good")}</div><div class="session-row"><div><strong id="route-device-id">${els.deviceIdCompact.textContent}</strong><span>${sessionInfo?.email || "Authenticated user"}</span></div><strong>${sessionInfo?.companyId || "Company"}</strong></div>`)}
-        ${panel("Top Processes", "Foreground process enriched from desktop telemetry.", `<div class="process-heatmap"><div style="height:${clamp(cpu,8,100)}%"></div><div style="height:${clamp(ram,8,100)}%"></div><div style="height:${clamp((sample.network?.downloadKBps || 0) / 10,8,100)}%"></div><div style="height:${clamp((sample.network?.uploadKBps || 0) / 10,8,100)}%"></div></div>`)}
+        ${panel("Top Processes", "Foreground process enriched from desktop telemetry.", `<div class="process-heatmap"><div style="height:${clamp(cpu,8,100)}%"></div><div style="height:${clamp(ram,8,100)}%"></div><div style="height:${clamp((sample.network?.downloadKBps || 0) / 10,8,100)}%"></div><div style="height:${clamp((sample.network?.uploadKBps || 0) / 10,8,100)}%"></div></div><div class="heatmap-labels"><span>CPU<b>${pct(cpu)}</b></span><span>RAM<b>${pct(ram)}</b></span><span>Down<b>${kb(sample.network?.downloadKBps || 0)}</b></span><span>Up<b>${kb(sample.network?.uploadKBps || 0)}</b></span></div>`)}
       </section>`,
     live: `
       <section class="route-grid">
@@ -159,7 +159,7 @@ function renderRoute(route) {
     timeline: `
       <section class="route-grid">
         ${panel("Activity Timeline", "Recent app focus sessions and durations.", `<div class="session-table">${sessions.slice(0, 12).map((s, i) => `<div class="session-row"><div><strong>${s.appName}</strong><span>${s.title || s.category}</span></div><div><time>${i === 0 ? "Active now" : time(s.startedAt)}</time><strong>${duration(s.duration)}</strong></div></div>`).join("") || `<div class="empty-state"><strong>No activity yet</strong><span>Start monitoring to build the timeline.</span></div>`}</div>`)}
-        ${panel("Focus Timeline", "Compressed visual focus history.", `<div class="timeline route-timeline">${sessions.slice(0, 18).map((s, i) => `<div class="timeline-segment" title="${s.appName}" style="opacity:${1 - i * .035}"></div>`).join("")}</div>`)}
+        ${panel("Focus Timeline", "Compressed visual focus history.", `<div class="timeline route-timeline">${sessions.slice(0, 18).map((s, i) => { const total = sessions.slice(0,18).reduce((sum,x)=>sum+(x.duration||1),0)||1; const w = Math.max(5, Math.round((s.duration||1)/total*100)); return `<div class="timeline-segment" style="flex:${w};opacity:${1-i*.03}" title="${s.appName} — ${duration(s.duration)}"><span class="tl-label">${s.appName.split('.')[0]}</span></div>`; }).join("")}</div>`)}
       </section>`,
     sessions: `
       <section class="route-grid">
@@ -194,12 +194,21 @@ function svgLine(el, values, opts = {}) {
   const data = values.length ? values : [0];
   const max = Math.max(opts.max || 100, ...data, 1), min = opts.min || 0;
   const points = data.map((v, i) => {
-    const x = pad + (i / Math.max(1, data.length - 1)) * (width - pad * 2);
+    const x = pad + 28 + (i / Math.max(1, data.length - 1)) * (width - pad * 2 - 28);
     const y = height - pad - ((v - min) / Math.max(1, max - min)) * (height - pad * 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
-  const area = `${pad},${height - pad} ${points.join(" ")} ${width - pad},${height - pad}`;
-  el.innerHTML = `<defs><linearGradient id="lineGradient" x1="0" x2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="55%" stop-color="#5b7cfa"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5b7cfa" stop-opacity=".34"/><stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs><path class="chart-area" d="M ${area} Z"/><path class="chart-line" d="M ${points.join(" L ")}"/><g>${[.25,.5,.75].map(p => `<line class="chart-grid" x1="${pad}" x2="${width-pad}" y1="${height*p}" y2="${height*p}"/>`).join("")}</g>`;
+  const area = `${pad + 28},${height - pad} ${points.join(" ")} ${width - pad},${height - pad}`;
+  const yLabels = [0, .25, .5, .75, 1].map(p => {
+    const val = Math.round(max - p * (max - min));
+    const y = pad + p * (height - pad * 2);
+    return `<text x="${pad + 20}" y="${y + 4}" text-anchor="end" class="chart-label">${val}%</text>`;
+  }).join("");
+  const gridLines = [.25, .5, .75].map(p => `<line class="chart-grid" x1="${pad + 28}" x2="${width - pad}" y1="${pad + p * (height - pad * 2)}" y2="${pad + p * (height - pad * 2)}"/>`).join("");
+  const lastVal = data[data.length - 1];
+  const lastY = height - pad - ((lastVal - min) / Math.max(1, max - min)) * (height - pad * 2);
+  const currentLabel = `<circle cx="${width - pad}" cy="${lastY}" r="4" fill="var(--primary, #5A30FF)"/><text x="${width - pad + 8}" y="${lastY + 4}" class="chart-label-current">${Math.round(lastVal)}%</text>`;
+  el.innerHTML = `<defs><linearGradient id="lineGradient" x1="0" x2="1"><stop offset="0%" stop-color="#5A30FF"/><stop offset="100%" stop-color="#8b6aff"/></linearGradient><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5A30FF" stop-opacity=".12"/><stop offset="100%" stop-color="#5A30FF" stop-opacity="0"/></linearGradient></defs><path class="chart-area" d="M ${area} Z"/><path class="chart-line" d="M ${points.join(" L ")}"/><g>${gridLines}</g><g>${yLabels}</g>${currentLabel}`;
 }
 function spark(id, values) { svgLine($(id), values, { width: 120, height: 36, pad: 3, max: 100 }); }
 function donut(el, value) {
@@ -277,7 +286,11 @@ function renderUsage() {
 }
 function renderTimeline() {
   const list = [analytics.current, ...analytics.sessions].filter(Boolean).slice(0, 14);
-  els.focusTimeline.innerHTML = list.map((s, i) => `<div class="timeline-segment" title="${s.appName}" style="opacity:${1 - i * .04}"></div>`).join("");
+  const totalDuration = list.reduce((sum, s) => sum + (s.duration || 1), 0) || 1;
+  els.focusTimeline.innerHTML = list.map((s, i) => {
+    const widthPct = Math.max(5, Math.round((s.duration || 1) / totalDuration * 100));
+    return `<div class="timeline-segment" style="flex:${widthPct};opacity:${1 - i * .03}" title="${s.appName} — ${duration(s.duration)}"><span class="tl-label">${s.appName.split('.')[0]}</span></div>`;
+  }).join("");
   els.sessionTable.innerHTML = [analytics.current, ...analytics.sessions].filter(Boolean).slice(0, 7).map((s, i) => `<div class="session-row"><div><strong>${s.appName}</strong><span>${s.title || s.category}</span></div><div><time>${i === 0 ? "Active" : time(s.startedAt)}</time><strong>${duration(i === 0 ? s.duration : s.duration)}</strong></div></div>`).join("") || `<div class="session-row"><div><strong>Waiting for session</strong><span>Focus telemetry will appear here.</span></div><strong>—</strong></div>`;
 }
 function renderTopRamApps(topProcesses) {

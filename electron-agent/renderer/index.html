@@ -9,18 +9,57 @@
   <body>
     <main id="app">
       <section id="view-login" class="login-shell">
-        <div class="login-card">
-          <div class="login-brand"><div class="brand-mark">V</div><div><p class="eyebrow">VORCE Agent</p><h1>Enterprise Device Intelligence</h1></div></div>
-          <p class="login-copy">Real-time workforce telemetry, device health, and productivity intelligence for enterprise teams.</p>
-          <button id="btn-google-login" class="btn-google"><span class="google-dot"></span><span class="btn-label">Masuk dengan Google</span></button>
-          <p id="login-error" class="surface-error" hidden></p>
-          <div class="login-metrics"><div><strong>Live</strong><span>Telemetry</span></div><div><strong>Secure</strong><span>Firebase Auth</span></div><div><strong>Smart</strong><span>Sync Engine</span></div></div>
+        <div class="login-container">
+          <div class="login-left">
+            <div class="login-left-content">
+              <img src="../vorcelogo/vorce.png" alt="Vorce" class="login-logo-img" />
+              <p class="login-eyebrow">Monitor with ease</p>
+              <h1 class="login-headline">Speed up your work<br>with <span class="text-gradient">Vorce Agent</span></h1>
+              <p class="login-tagline">Real-time device intelligence and workforce analytics platform.</p>
+            </div>
+            <div class="login-partners">
+              <p>Trusted technology</p>
+              <div class="partner-logos">
+                <span>🔥 Firebase</span>
+                <span>☁️ Google Cloud</span>
+                <span>🔒 OAuth 2.0</span>
+              </div>
+            </div>
+          </div>
+          <div class="login-right">
+            <div class="login-form-area">
+              <h2 class="login-title">Get Started Now</h2>
+              <p class="login-subtitle">Masuk ke akun Anda untuk melanjutkan.</p>
+              <div class="login-separator">
+                <span>Masuk dengan</span>
+              </div>
+              <div class="login-oauth-buttons">
+                <button id="btn-google-login" class="btn-oauth">
+                  <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+                    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+                    <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                  </svg>
+                  <span>Login with Google</span>
+                </button>
+                <button id="btn-apple-login" class="btn-oauth">
+                  <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+                    <path d="M14.94 9.88c-.02-2.08 1.7-3.08 1.78-3.13-0.97-1.42-2.48-1.61-3.01-1.63-1.28-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.07-1.45 2.52-.37 6.27 1.05 8.32.69 1 1.51 2.13 2.6 2.09 1.04-.04 1.43-.67 2.69-.67 1.26 0 1.61.67 2.71.65 1.12-.02 1.83-.99 2.52-2.01.79-1.15 1.12-2.27 1.14-2.33-.02-.01-2.18-.84-2.2-3.32zM12.88 3.74c.57-.7.96-1.66.85-2.62-.82.03-1.82.55-2.41 1.24-.53.61-.99 1.59-.87 2.53.92.07 1.86-.47 2.43-1.15z" fill="#000000"/>
+                  </svg>
+                  <span>Login with Apple</span>
+                </button>
+              </div>
+              <p id="login-error" class="surface-error" hidden></p>
+            </div>
+            <p class="login-footer">© 2026 Vorce. All rights reserved.</p>
+          </div>
         </div>
       </section>
 
       <section id="view-dashboard" class="dashboard-shell" hidden>
         <aside class="sidebar">
-          <div class="sidebar-brand"><div class="brand-mark small-mark">V</div><div><strong>VORCE</strong><span>Device Intel</span></div></div>
+          <div class="sidebar-brand"><img src="../vorcelogo/vorce.png" alt="Vorce" class="sidebar-logo" /><div><strong>VORCE</strong><span>Device Intel</span></div></div>
           <nav class="nav-list" aria-label="Primary navigation">
             <button class="nav-item active" type="button" data-route="dashboard"><span>◇</span>Dashboard</button><button class="nav-item" type="button" data-route="devices"><span>▣</span>Devices</button><button class="nav-item" type="button" data-route="live"><span>◉</span>Live Monitoring</button><button class="nav-item" type="button" data-route="analytics"><span>▰</span>Analytics</button><button class="nav-item" type="button" data-route="timeline"><span>⌁</span>Activity Timeline</button><button class="nav-item" type="button" data-route="sessions"><span>◌</span>Employee Sessions</button><button class="nav-item" type="button" data-route="alerts"><span>△</span>Alerts</button><button class="nav-item" type="button" data-route="settings"><span>⚙</span>Settings</button>
           </nav>
@@ -50,13 +89,13 @@
           <section class="analytics-grid">
             <article class="panel chart-panel span-2"><div class="panel-head"><div><h2>CPU Analytics</h2><p>Realtime processing load, peak, and rolling average.</p></div><div class="stat-row"><span>Now <b id="cpu-now">—</b></span><span>Peak <b id="cpu-peak">—</b></span><span>Avg <b id="cpu-avg">—</b></span></div></div><svg id="chart-cpu" class="line-chart" viewBox="0 0 720 220"></svg></article>
             <article class="panel"><div class="panel-head"><div><h2>RAM Analytics</h2><p>Memory pressure and allocation.</p></div></div><div class="donut-wrap"><svg id="donut-ram" class="donut" viewBox="0 0 160 160"></svg><div><strong id="ram-now">—</strong><span id="ram-detail">Used / free</span></div></div><div class="pressure" id="memory-pressure">Memory pressure pending</div></article>
-            <article class="panel"><div class="panel-head"><div><h2>Top RAM Consumers</h2><p>Top 5 applications by observed foreground memory usage.</p></div></div><div id="top-ram-apps" class="rank-list"></div></article>
-            <article class="panel"><div class="panel-head"><div><h2>Storage Analytics</h2><p>Disk usage and available capacity.</p></div></div><div class="storage-meter"><div id="storage-fill"></div></div><div class="split-stats"><span>Used <b id="storage-used">—</b></span><span>Free <b id="storage-free">—</b></span><span>Status <b id="storage-status">Healthy</b></span></div></article>
-            <article class="panel chart-panel"><div class="panel-head"><div><h2>Network Analytics</h2><p>Upload, download, and quality signal.</p></div></div><svg id="chart-network" class="line-chart compact" viewBox="0 0 360 170"></svg><div class="split-stats"><span>Up <b id="net-up">—</b></span><span>Down <b id="net-down">—</b></span></div></article>
-            <article class="panel activity-panel span-2"><div class="panel-head"><div><h2>Current Activity</h2><p>Application focus, active window, duration, and productivity context.</p></div><div class="activity-badge" id="app-category">Classifying</div></div><div class="activity-main"><div class="app-avatar" id="app-avatar">—</div><div class="activity-copy"><span>Currently focused</span><strong id="active-app">—</strong><p id="active-title">—</p><small id="active-executable">Executable pending</small></div><div class="duration-card"><span>Active duration</span><strong id="active-duration">00:00</strong></div></div><div class="timeline" id="focus-timeline"></div></article>
+            <article class="panel"><div class="panel-head"><div><h2>Top RAM Consumers</h2><p>Top 5 apps by memory usage.</p></div></div><div id="top-ram-apps" class="rank-list"></div></article>
             <article class="panel"><div class="panel-head"><div><h2>Usage Breakdown</h2><p>Focus distribution by application.</p></div></div><div id="usage-breakdown" class="usage-list"></div></article>
-            <article class="panel span-2"><div class="panel-head"><div><h2>Activity Timeline</h2><p>Recent app sessions with duration and switch history.</p></div></div><div id="session-table" class="session-table"></div></article>
             <article class="panel"><div class="panel-head"><div><h2>Intelligence Signals</h2><p>Local analytics engine output.</p></div></div><div class="signal-list"><div><span>Active vs idle ratio</span><strong id="active-idle-ratio">—</strong></div><div><span>Switch frequency</span><strong id="switch-frequency">—</strong></div><div><span>Memory spikes</span><strong id="memory-spikes">0</strong></div><div><span>Anomaly state</span><strong id="anomaly-state">Stable</strong></div></div></article>
+            <article class="panel activity-panel span-2"><div class="panel-head"><div><h2>Current Activity</h2><p>Application focus, active window, duration, and productivity context.</p></div><div class="activity-badge" id="app-category">Classifying</div></div><div class="activity-main"><div class="app-avatar" id="app-avatar">—</div><div class="activity-copy"><span>Currently focused</span><strong id="active-app">—</strong><p id="active-title">—</p><small id="active-executable">Executable pending</small></div><div class="duration-card"><span>Active duration</span><strong id="active-duration">00:00</strong></div></div><div class="timeline" id="focus-timeline"></div></article>
+            <article class="panel chart-panel"><div class="panel-head"><div><h2>Network Analytics</h2><p>Upload, download, and quality signal.</p></div></div><svg id="chart-network" class="line-chart compact" viewBox="0 0 360 170"></svg><div class="split-stats"><span>Up <b id="net-up">—</b></span><span>Down <b id="net-down">—</b></span></div></article>
+            <article class="panel span-2"><div class="panel-head"><div><h2>Activity Timeline</h2><p>Recent app sessions with duration and switch history.</p></div></div><div id="session-table" class="session-table"></div></article>
+            <article class="panel"><div class="panel-head"><div><h2>Storage Analytics</h2><p>Disk usage and available capacity.</p></div></div><div class="storage-meter"><div id="storage-fill"></div></div><div class="split-stats"><span>Used <b id="storage-used">—</b></span><span>Free <b id="storage-free">—</b></span><span>Status <b id="storage-status">Healthy</b></span></div></article>
           </section>
           </section>
           <section id="route-content" class="page-view route-content" aria-live="polite"></section>

@@ -13,12 +13,36 @@
 const path = require("path");
 const http = require("http");
 const { exec } = require("child_process");
-const { shell } = require("electron");
+const { shell, nativeImage } = require("electron");
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 
 // Disable Edge/Chromium built-in sidebar before app is ready
 app.commandLine.appendSwitch("disable-features", "msEdgeSidebarV2,msEdgeSidebar,EdgeSidebar");
 app.commandLine.appendSwitch("disable-extensions");
+
+// Register custom protocol for deep linking (vorce-agent://)
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient("vorce-agent", process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient("vorce-agent");
+}
+
+// Handle protocol URL on Windows (single instance)
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (event, commandLine) => {
+    // Someone tried to open vorce-agent:// while app is running — focus the window
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
 
 // Kill any process using a specific port (Windows only)
 function killProcessOnPort(port) {
@@ -70,18 +94,39 @@ function startAuthServer(preferredPort = 0) {
 <head>
   <title>VORCE - Login Berhasil</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-    .container { padding: 2rem; }
-    h1 { color: #22c55e; margin-bottom: 0.5rem; }
-    p { color: #94a3b8; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #ffffff; display: flex; align-items: center; justify-content: center; height: 100vh; }
+    .container { text-align: center; padding: 3rem; }
+    .check { width: 64px; height: 64px; border-radius: 50%; background: #f0fdf4; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+    .check svg { width: 32px; height: 32px; }
+    h1 { color: #1a1a1a; font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    p { color: #6b7280; font-size: 0.9rem; margin-bottom: 2rem; }
+    .btn-open { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; background: #5A30FF; color: #ffffff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: opacity .15s; }
+    .btn-open:hover { opacity: .85; }
+    .hint { color: #9ca3af; font-size: 0.75rem; margin-top: 1rem; }
+    .brand { display: inline-flex; align-items: center; gap: 8px; color: #9ca3af; font-size: 0.8rem; margin-top: 2rem; }
+    .brand-dot { width: 20px; height: 20px; border-radius: 6px; background: #5A30FF; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 800; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>✓ Login Berhasil</h1>
-    <p>Anda dapat menutup tab ini dan kembali ke aplikasi VORCE.</p>
+    <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <h1>Login Berhasil</h1>
+    <p>Akun Anda telah terverifikasi.</p>
+    <a href="vorce-agent://auth-success" class="btn-open" id="btn-open">Buka Vorce Agent</a>
+    <p class="hint">Atau tab ini akan tertutup otomatis dalam 5 detik</p>
+    <div class="brand"><svg width="20" height="20" viewBox="0 0 2617 2617" style="border-radius:4px"><rect width="2617" height="2617" fill="#5A30FF" rx="400"/><path d="M743 517c200-50 400 50 500 200s150 350 100 550-200 350-400 400-400-50-500-200-150-350-100-550 200-350 400-400z" fill="#fff"/><path d="M1310 517c200-50 400 50 500 200s150 350 100 550-200 350-400 400-400-50-500-200-150-350-100-550 200-350 400-400z" fill="#fff"/><circle cx="1965" cy="960" r="450" fill="#F79A28"/></svg> VORCE Agent</div>
   </div>
-  <script>setTimeout(()=>window.close(), 3000)</script>
+  <script>
+    document.getElementById('btn-open').addEventListener('click', function(e) {
+      // Try protocol link
+      window.location.href = 'vorce-agent://auth-success';
+      // Close tab after short delay
+      setTimeout(() => window.close(), 500);
+    });
+    // Auto close after 5s
+    setTimeout(() => window.close(), 5000);
+  </script>
 </body>
 </html>`);
             return;
@@ -165,6 +210,9 @@ async function fetchGoogleAuthUrl(continueUri) {
   return data.authUri;
 }
 
+// App icon will use the SVG file - on Windows it falls back to default if not .ico
+// For proper Windows icon, convert vorce-logo.svg to .ico externally
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -172,9 +220,17 @@ function createWindow() {
     minWidth: 1180,
     minHeight: 760,
     title: "VORCE Device Intelligence",
+    icon: path.join(__dirname, "vorcelogo", "vorce.png"),
     show: false,
+    frame: false,
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+      color: "#ffffff",
+      symbolColor: "#1a1a1a",
+      height: 36,
+    },
     autoHideMenuBar: true,
-    backgroundColor: "#f5f7ff",
+    backgroundColor: "#f8f9fb",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -288,16 +344,6 @@ async function startExternalBrowserOAuth() {
 
   // Open user's default browser (Chrome, Edge, Firefox, etc.)
   await shell.openExternal(authUri);
-
-  // Show dialog to guide user
-  dialog.showMessageBox(mainWindow, {
-    type: "info",
-    title: "VORCE - Masuk dengan Google",
-    message: "Browser telah dibuka untuk login Google.",
-    detail: "Silakan pilih akun dan login di browser Anda. Setelah selesai, aplikasi akan otomatis melanjutkan.",
-    buttons: ["OK"],
-    defaultId: 0,
-  });
 }
 
 async function exchangeCodeForToken(code, redirectUri) {
@@ -375,10 +421,12 @@ async function handleOAuthCallback(url) {
     authResolved = true;
     broadcast("auth:login-success", session);
 
-    // Bring app to foreground
-    if (mainWindow) {
+    // Bring app to foreground immediately after successful login
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
       mainWindow.focus();
-      mainWindow.flashFrame(true);
+      mainWindow.flashFrame(false);
     }
   } catch (err) {
     log.warn("oauth callback failed", { err: err.message });
@@ -397,6 +445,7 @@ function setupIpc() {
     await monitor.stop();
     broadcast("monitor:status-changed", { running: false });
     await authService.logout();
+    authResolved = false;
     return { ok: true };
   });
 
@@ -473,6 +522,16 @@ app.whenReady().then(async () => {
   await localApiServer.start();
   setupIpc();
   createWindow();
+
+  // Handle vorce-agent:// protocol on macOS
+  app.on("open-url", (event, url) => {
+    event.preventDefault();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
