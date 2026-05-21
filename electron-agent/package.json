@@ -9,6 +9,7 @@
     "dev": "electron . --enable-logging",
     "rebuild": "electron-rebuild",
     "build": "electron-builder --win",
+    "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
     "build:all": "electron-builder --win --mac --linux",
@@ -16,6 +17,10 @@
   },
   "author": "VORCE",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hellyoshaqiqie17/vorce-electron.git"
+  },
   "build": {
     "appId": "com.vorce.agent",
     "productName": "VORCE Agent",
