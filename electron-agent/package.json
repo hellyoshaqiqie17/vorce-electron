@@ -41,7 +41,9 @@
       "gatekeeperAssess": false,
       "entitlements": "entitlements.mac.plist",
       "entitlementsInherit": "entitlements.mac.plist",
-      "notarize": true
+      "notarize": {
+        "teamId": "TK5W5C4S89"
+      }
     },
     "linux": {
       "target": ["AppImage", "deb"],
