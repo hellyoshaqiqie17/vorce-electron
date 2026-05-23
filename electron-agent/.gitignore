@@ -6,3 +6,9 @@ out/
 .env.local
 .DS_Store
 Thumbs.db
+
+# Certificates (sensitive)
+certificate/
+*.p12
+*.pem
+*.cer
