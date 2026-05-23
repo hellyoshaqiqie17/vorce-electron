@@ -1,7 +1,7 @@
 {
-  "name": "vorce-electron-agent",
+  "name": "vlinked-electron-agent",
   "version": "1.0.0",
-  "description": "VORCE desktop monitoring agent. Authenticates with Firebase, exposes a local monitoring API, and writes desktop device/metrics data to Firestore.",
+  "description": "Vlinked desktop monitoring agent. Authenticates with Firebase, exposes a local monitoring API, and writes desktop device/metrics data to Firestore.",
   "main": "main.js",
   "private": true,
   "scripts": {
@@ -22,8 +22,8 @@
     "url": "https://github.com/hellyoshaqiqie17/vorce-electron.git"
   },
   "build": {
-    "appId": "com.vorce.agent",
-    "productName": "VORCE Agent",
+    "appId": "com.vorce.vlinked",
+    "productName": "Vlinked",
     "directories": {
       "output": "dist"
     },
@@ -55,9 +55,9 @@
       "allowToChangeInstallationDirectory": true
     },
     "protocols": {
-      "name": "VORCE Agent",
+      "name": "Vlinked",
       "schemes": [
-        "vorce-agent"
+        "vlinked"
       ]
     },
     "files": [

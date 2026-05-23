@@ -20,13 +20,13 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 app.commandLine.appendSwitch("disable-features", "msEdgeSidebarV2,msEdgeSidebar,EdgeSidebar");
 app.commandLine.appendSwitch("disable-extensions");
 
-// Register custom protocol for deep linking (vorce-agent://)
+// Register custom protocol for deep linking (vlinked://)
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient("vorce-agent", process.execPath, [path.resolve(process.argv[1])]);
+    app.setAsDefaultProtocolClient("vlinked", process.execPath, [path.resolve(process.argv[1])]);
   }
 } else {
-  app.setAsDefaultProtocolClient("vorce-agent");
+  app.setAsDefaultProtocolClient("vlinked");
 }
 
 // Handle protocol URL on Windows (single instance)
@@ -35,7 +35,7 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", (event, commandLine) => {
-    // Someone tried to open vorce-agent:// while app is running — focus the window
+    // Someone tried to open vlinked:// while app is running — focus the window
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.show();
@@ -92,7 +92,7 @@ function startAuthServer(preferredPort = 0) {
             res.end(`<!DOCTYPE html>
 <html>
 <head>
-  <title>VORCE - Login Berhasil</title>
+  <title>Vlinked - Login Berhasil</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #ffffff; display: flex; align-items: center; justify-content: center; height: 100vh; }
@@ -113,14 +113,14 @@ function startAuthServer(preferredPort = 0) {
     <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
     <h1>Login Berhasil</h1>
     <p>Akun Anda telah terverifikasi.</p>
-    <a href="vorce-agent://auth-success" class="btn-open" id="btn-open">Buka Vorce Agent</a>
+    <a href="vlinked://auth-success" class="btn-open" id="btn-open">Buka Vlinked</a>
     <p class="hint">Atau tab ini akan tertutup otomatis dalam 5 detik</p>
-    <div class="brand"><svg width="20" height="20" viewBox="0 0 2617 2617" style="border-radius:4px"><rect width="2617" height="2617" fill="#5A30FF" rx="400"/><path d="M743 517c200-50 400 50 500 200s150 350 100 550-200 350-400 400-400-50-500-200-150-350-100-550 200-350 400-400z" fill="#fff"/><path d="M1310 517c200-50 400 50 500 200s150 350 100 550-200 350-400 400-400-50-500-200-150-350-100-550 200-350 400-400z" fill="#fff"/><circle cx="1965" cy="960" r="450" fill="#F79A28"/></svg> VORCE Agent</div>
+    <div class="brand"><svg width="20" height="20" viewBox="0 0 2617 2617" style="border-radius:4px"><rect width="2617" height="2617" fill="#5A30FF" rx="400"/><path d="M743 517c200-50 400 50 500 200s150 350 100 550-200 350-400 400-400-50-500-200-150-350-100-550 200-350 400-400z" fill="#fff"/><path d="M1310 517c200-50 400 50 500 200s150 350 100 550-200 350-400 400-400-50-500-200-150-350-100-550 200-350 400-400z" fill="#fff"/><circle cx="1965" cy="960" r="450" fill="#F79A28"/></svg> Vlinked</div>
   </div>
   <script>
     document.getElementById('btn-open').addEventListener('click', function(e) {
       // Try protocol link
-      window.location.href = 'vorce-agent://auth-success';
+      window.location.href = 'vlinked://auth-success';
       // Close tab after short delay
       setTimeout(() => window.close(), 500);
     });
@@ -219,7 +219,7 @@ function createWindow() {
     height: 920,
     minWidth: 1180,
     minHeight: 760,
-    title: "VORCE Device Intelligence",
+    title: "Vlinked",
     icon: path.join(__dirname, "vorcelogo", "vorce.png"),
     show: false,
     frame: false,
@@ -307,7 +307,7 @@ function openGoogleAuthInBrowser() {
       // Get actual port used (may differ from preferred if port was in use)
       const actualPort = authServerPort || AUTH_CALLBACK_PORT;
       dialog.showErrorBox(
-        "VORCE Auth Setup Required",
+        "Vlinked Auth Setup Required",
         "Error: redirect_uri_mismatch\n\n" +
         "Anda perlu menambahkan localhost ke Authorized Redirect URIs:\n\n" +
         "1. Buka https://console.cloud.google.com/apis/credentials\n" +
@@ -317,7 +317,7 @@ function openGoogleAuthInBrowser() {
         "4. Save dan tunggu 5 menit, lalu coba lagi."
       );
     } else {
-      dialog.showErrorBox("VORCE Auth Error", err.message || "Unknown error");
+      dialog.showErrorBox("Vlinked Auth Error", err.message || "Unknown error");
     }
     if (!authResolved) {
       broadcast("auth:login-error", { error: err.message });
@@ -524,7 +524,7 @@ app.whenReady().then(async () => {
   setupIpc();
   createWindow();
 
-  // Handle vorce-agent:// protocol on macOS
+  // Handle vlinked:// protocol on macOS
   app.on("open-url", (event, url) => {
     event.preventDefault();
     if (mainWindow) {

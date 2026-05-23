@@ -1,4 +1,4 @@
-name: Build VORCE Agent
+name: Build Vlinked
 
 on:
   push:
@@ -56,7 +56,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vorce-agent-${{ matrix.platform }}
+          name: vlinked-${{ matrix.platform }}
           path: |
             electron-agent/dist/*.exe
             electron-agent/dist/*.dmg
