@@ -14,6 +14,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 const channels = {
   invoke: [
     "auth:open-google",
+    "auth:open-apple",
     "auth:logout",
     "auth:session",
     "device:register",

@@ -343,6 +343,7 @@ api.on("device:info", ({ deviceId, info, intervalMs }) => {
 });
 
 els.btnGoogleLogin.addEventListener("click", async () => { showLoginError(""); setLoginBusy(true); try { await api.invoke("auth:open-google"); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); setLoginBusy(false); } });
+document.getElementById("btn-apple-login")?.addEventListener("click", async () => { showLoginError(""); setLoginBusy(true); try { await api.invoke("auth:open-apple"); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); setLoginBusy(false); } });
 api.on("auth:login-success", async (session) => { setLoginBusy(false); try { await afterLogin(session); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); } });
 api.on("auth:login-error", ({ error }) => { setLoginBusy(false); showLoginError(error || "Login gagal."); });
 els.btnLogout.addEventListener("click", async () => { await api.invoke("auth:logout"); setStatus(false); showLogin(); });

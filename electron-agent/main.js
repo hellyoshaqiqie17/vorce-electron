@@ -210,6 +210,33 @@ async function fetchGoogleAuthUrl(continueUri) {
   return data.authUri;
 }
 
+async function fetchAppleAuthUrl(continueUri) {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${config.firebase.apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        continueUri,
+        providerId: "apple.com",
+        oauthScope: "email name",
+      }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data.error?.message || JSON.stringify(data);
+    log.error("createAuthUri (apple) failed", { status: res.status, msg });
+    throw new Error(msg);
+  }
+  if (!data.authUri) throw new Error("Firebase tidak mengembalikan URL autentikasi Apple.");
+
+  currentAuthSessionId = data.sessionId;
+  log.info("createAuthUri (apple) ok", { sessionId: currentAuthSessionId?.slice(0, 10) + "..." });
+
+  return data.authUri;
+}
+
 // App icon will use the SVG file - on Windows it falls back to default if not .ico
 // For proper Windows icon, convert vorce-logo.svg to .ico externally
 
@@ -347,6 +374,39 @@ async function startExternalBrowserOAuth() {
   await shell.openExternal(authUri);
 }
 
+async function startExternalBrowserAppleOAuth() {
+  // Reset auth server to get fresh port binding
+  if (authServer) {
+    authServer.close();
+    authServer = null;
+    authServerPort = 0;
+  }
+
+  await killProcessOnPort(AUTH_CALLBACK_PORT);
+  await new Promise(r => setTimeout(r, 200));
+
+  const port = await startAuthServer(AUTH_CALLBACK_PORT);
+  const continueUri = `http://localhost:${port}/__/auth/handler`;
+
+  const authUri = await fetchAppleAuthUrl(continueUri);
+  log.info("opening external browser for apple oauth", { uri: authUri.slice(0, 80) + "..." });
+
+  await shell.openExternal(authUri);
+}
+
+function openAppleAuthInBrowser() {
+  if (authResolved) return;
+  authResolved = false;
+
+  startExternalBrowserAppleOAuth().catch((err) => {
+    log.error("apple oauth flow failed", { err: err.message });
+    dialog.showErrorBox("Vlinked Auth Error", err.message || "Apple login gagal");
+    if (!authResolved) {
+      broadcast("auth:login-error", { error: err.message });
+    }
+  });
+}
+
 async function exchangeCodeForToken(code, redirectUri) {
   if (!currentAuthSessionId) {
     throw new Error("Session ID tidak tersedia. Silakan coba login lagi.");
@@ -439,6 +499,11 @@ async function handleOAuthCallback(url) {
 function setupIpc() {
   ipcMain.handle("auth:open-google", async () => {
     openGoogleAuthInBrowser();
+    return { ok: true };
+  });
+
+  ipcMain.handle("auth:open-apple", async () => {
+    openAppleAuthInBrowser();
     return { ok: true };
   });
 
