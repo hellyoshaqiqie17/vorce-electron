@@ -211,13 +211,15 @@ async function fetchGoogleAuthUrl(continueUri) {
 }
 
 async function fetchAppleAuthUrl(continueUri) {
+  // Apple doesn't support localhost redirect - use Firebase auth handler
+  const firebaseRedirect = "https://hora-7394b.firebaseapp.com/__/auth/handler";
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${config.firebase.apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        continueUri,
+        continueUri: firebaseRedirect,
         providerId: "apple.com",
         oauthScope: "email name",
       }),
@@ -375,23 +377,101 @@ async function startExternalBrowserOAuth() {
 }
 
 async function startExternalBrowserAppleOAuth() {
-  // Reset auth server to get fresh port binding
-  if (authServer) {
-    authServer.close();
-    authServer = null;
-    authServerPort = 0;
-  }
+  // Apple doesn't support localhost redirect, so we use an internal BrowserWindow
+  // that loads the Apple auth URL with Firebase redirect, then intercept the callback
+  const firebaseRedirect = "https://hora-7394b.firebaseapp.com/__/auth/handler";
+  
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${config.firebase.apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        continueUri: firebaseRedirect,
+        providerId: "apple.com",
+        oauthScope: "email name",
+      }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Failed to get Apple auth URL");
+  if (!data.authUri) throw new Error("Firebase tidak mengembalikan URL autentikasi Apple.");
+  
+  currentAuthSessionId = data.sessionId;
+  log.info("apple auth uri ready", { sessionId: currentAuthSessionId?.slice(0, 10) + "..." });
 
-  await killProcessOnPort(AUTH_CALLBACK_PORT);
-  await new Promise(r => setTimeout(r, 200));
+  // Open in a new BrowserWindow to intercept the callback
+  const authWindow = new BrowserWindow({
+    width: 600,
+    height: 700,
+    title: "Sign in with Apple",
+    autoHideMenuBar: true,
+    webPreferences: { nodeIntegration: false, contextIsolation: true },
+  });
 
-  const port = await startAuthServer(AUTH_CALLBACK_PORT);
-  const continueUri = `http://localhost:${port}/__/auth/handler`;
+  authWindow.loadURL(data.authUri);
 
-  const authUri = await fetchAppleAuthUrl(continueUri);
-  log.info("opening external browser for apple oauth", { uri: authUri.slice(0, 80) + "..." });
+  // Intercept navigation to Firebase callback URL
+  authWindow.webContents.on("will-redirect", async (event, url) => {
+    if (url.includes("/__/auth/handler") || url.includes("/__/auth/action")) {
+      // Firebase auth handler will have the code in the URL
+      try {
+        const urlObj = new URL(url);
+        const code = urlObj.searchParams.get("code");
+        if (code) {
+          event.preventDefault();
+          authWindow.close();
+          const authPayload = await exchangeCodeForToken(code, firebaseRedirect);
+          const session = await authService.loginWithGoogle(authPayload);
+          authResolved = true;
+          broadcast("auth:login-success", session);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        }
+      } catch (err) {
+        log.error("apple auth callback failed", { err: err.message });
+        authResolved = true;
+        broadcast("auth:login-error", { error: err.message });
+        authWindow.close();
+      }
+    }
+  });
 
-  await shell.openExternal(authUri);
+  // Also check page title/URL changes for the callback
+  authWindow.webContents.on("did-navigate", async (event, url) => {
+    if (url.includes("/__/auth/handler")) {
+      try {
+        const urlObj = new URL(url);
+        const code = urlObj.searchParams.get("code");
+        if (code) {
+          authWindow.close();
+          const authPayload = await exchangeCodeForToken(code, firebaseRedirect);
+          const session = await authService.loginWithGoogle(authPayload);
+          authResolved = true;
+          broadcast("auth:login-success", session);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        }
+      } catch (err) {
+        log.error("apple auth navigate failed", { err: err.message });
+        authResolved = true;
+        broadcast("auth:login-error", { error: err.message });
+        authWindow.close();
+      }
+    }
+  });
+
+  authWindow.on("closed", () => {
+    if (!authResolved) {
+      broadcast("auth:login-error", { error: "Login dibatalkan." });
+    }
+  });
 }
 
 function openAppleAuthInBrowser() {
