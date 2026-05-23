@@ -36,12 +36,18 @@ jobs:
         working-directory: electron-agent
         run: npm install
 
+      - name: Decode certificate (macOS only)
+        if: matrix.platform == 'mac'
+        working-directory: electron-agent
+        run: |
+          echo "${{ secrets.APPLE_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
+
       - name: Build Electron app
         working-directory: electron-agent
         run: npm run build:${{ matrix.platform }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ matrix.platform == 'mac' && secrets.APPLE_CERTIFICATE_BASE64 || '' }}
+          CSC_LINK: ${{ matrix.platform == 'mac' && 'certificate.p12' || '' }}
           CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
