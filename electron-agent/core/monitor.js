@@ -23,6 +23,7 @@ const deviceService = require("../services/deviceService");
 const intelligence = require("../services/intelligence");
 const localApiClient = require("../services/localApiClient");
 const statsBatchBuffer = require("../services/statsBatchBuffer");
+const realtimePresenceStore = require("../services/realtimePresenceStore");
 const { make } = require("../utils/logger");
 
 const log = make("monitor");
@@ -71,6 +72,8 @@ async function takeSample() {
     network: {
       uploadKBps: network.uploadKBps,
       downloadKBps: network.downloadKBps,
+      wifi: network.wifi || "",
+      location: network.location || "Unknown",
     },
     process: {
       appName: processInfo.appName || activity.appName || "Unknown",
@@ -105,6 +108,12 @@ async function tick() {
     return;
   }
   const deviceId = state.deviceId;
+
+  try {
+    realtimePresenceStore.startCommandListener(state.binding.companyId, deviceId);
+  } catch (err) {
+    log.warn("failed to start command listener", { err: err.message });
+  }
 
   let sample;
   try {
@@ -184,6 +193,7 @@ async function stop() {
     const state = deviceService.getRegistrationState();
     await intelligence.flush({ deviceId: state?.deviceId, binding: state?.binding });
     await statsBatchBuffer.stop({ flushFirestore: true });
+    realtimePresenceStore.stopCommandListener();
   } catch (err) {
     log.warn("intelligence flush failed", { err: err.message });
   }

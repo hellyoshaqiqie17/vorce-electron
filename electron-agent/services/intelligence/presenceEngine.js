@@ -62,6 +62,8 @@ function buildPayload({ deviceId, binding, sample, sessionStartedAt, sessionId }
     sessionId: sessionId || null,
     sessionStartedAt: sessionStartedAt || null,
     lastHeartbeat: Math.floor(Date.now() / 1000),
+    wifi: sample?.network?.wifi || "",
+    location: sample?.network?.location || "Unknown",
   };
 }
 

@@ -4,6 +4,58 @@ const os = require("os");
 const si = require("systeminformation");
 
 let previousStats = null;
+let cachedLocation = "Unknown";
+let cachedWifi = "";
+let lastLocalIp = "";
+let lastWifiFetchTime = 0;
+let isFetchingLocation = false;
+const WIFI_CACHE_TTL = 10000; // Cache SSID for 10 seconds
+
+async function fetchLocationFromIp() {
+  if (isFetchingLocation) return;
+  isFetchingLocation = true;
+  try {
+    const res = await fetch("http://ip-api.com/json", {
+      signal: AbortSignal.timeout(5000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.status === "success") {
+        const city = data.city || "";
+        const region = data.regionName || data.region || "";
+        const country = data.country || "";
+        const parts = [city, region, country].filter(Boolean);
+        if (parts.length > 0) {
+          cachedLocation = parts.join(", ");
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore error and keep cached value
+  } finally {
+    isFetchingLocation = false;
+  }
+}
+
+async function fetchWifiSsid() {
+  const now = Date.now();
+  if (now - lastWifiFetchTime < WIFI_CACHE_TTL) {
+    return cachedWifi;
+  }
+  try {
+    const connections = await si.wifiConnections();
+    if (connections && connections.length > 0) {
+      const active = connections.find(c => c.ssid);
+      cachedWifi = active ? active.ssid : "";
+    } else {
+      cachedWifi = "";
+    }
+  } catch (err) {
+    cachedWifi = "";
+  }
+  lastWifiFetchTime = now;
+  return cachedWifi;
+}
 
 function round(value, digits = 1) {
   const n = Number(value);
@@ -33,6 +85,13 @@ async function collectNetwork() {
   let uploadKBps = 0;
   let downloadKBps = 0;
 
+  if (primary.localIp && primary.localIp !== lastLocalIp) {
+    lastLocalIp = primary.localIp;
+    fetchLocationFromIp(); // Fetch asynchronously, do not await to avoid blocking tick
+  }
+
+  const wifi = await fetchWifiSsid();
+
   try {
     const stats = await si.networkStats(primary.iface || "*");
     const current = Array.isArray(stats) ? stats[0] : stats;
@@ -58,6 +117,8 @@ async function collectNetwork() {
 
   return {
     ...primary,
+    wifi,
+    location: cachedLocation,
     uploadKBps: Math.max(0, round(uploadKBps, 1)),
     downloadKBps: Math.max(0, round(downloadKBps, 1)),
   };

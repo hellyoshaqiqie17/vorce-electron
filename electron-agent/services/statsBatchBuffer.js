@@ -40,6 +40,7 @@ function freshState() {
     userEmail: null,
     userName: null,
     deviceId: null,
+    location: "Unknown",
     totalOnlineSeconds: 0,
     totalActiveSeconds: 0,
     totalIdleSeconds: 0,
@@ -107,6 +108,7 @@ function resetForContext({ deviceId, binding }) {
   state.userEmail = binding.email || binding.userEmail || null;
   state.userName = binding.displayName || binding.userName || null;
   state.deviceId = deviceId;
+  state.location = "Unknown";
   lastObservedAtSec = 0;
 }
 
@@ -183,6 +185,7 @@ function buildSummary({ final = false } = {}) {
     deviceId: state.deviceId,
     date: state.date,
     final,
+    location: state.location || "Unknown",
     totalOnlineSeconds: Math.round(state.totalOnlineSeconds),
     totalActiveSeconds: Math.round(state.totalActiveSeconds),
     totalIdleSeconds: Math.round(state.totalIdleSeconds),
@@ -212,6 +215,8 @@ function buildSummary({ final = false } = {}) {
 
 function observe({ deviceId, binding, sample, intervalSeconds = 5 }) {
   if (!ensureContext({ deviceId, binding })) return;
+
+  state.location = sample?.network?.location || state.location || "Unknown";
 
   const nowSec = Number(sample?.timestamp) || Math.floor(Date.now() / 1000);
   let seconds = Number(intervalSeconds) || 5;

@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 const api = window.vorceAgent;
 const $ = (sel) => document.querySelector(sel);
@@ -169,7 +169,7 @@ function renderRoute(route) {
     alerts: `
       <section class="route-grid">
         ${panel("Alert Center", "Operational alerts derived from local analytics.", `<div class="alert-list"><div class="alert-item ${ram > 88 ? "bad" : "good"}"><strong>${ram > 88 ? "High memory pressure" : "Memory normal"}</strong><span>${pct(ram)} RAM usage</span></div><div class="alert-item ${cpu > 92 ? "bad" : "good"}"><strong>${cpu > 92 ? "CPU anomaly detected" : "CPU stable"}</strong><span>${pct(cpu)} CPU usage</span></div></div>`)}
-        ${panel("Recovery State", "Reconnect and sync posture.", `<div class="empty-state"><strong>${running ? "Telemetry stream healthy" : "Monitoring paused"}</strong><span>${running ? "Heartbeat and local analytics are active." : "Click Mulai Monitoring to resume."}</span></div>`)}
+        ${panel("Recovery State", "Reconnect and sync posture.", `<div class="empty-state"><strong>${running ? "Telemetry stream healthy" : "Monitoring standby"}</strong><span>${running ? "Heartbeat and local analytics are active." : "Automatic monitoring is starting..."}</span></div>`)}
       </section>`,
     settings: `
       <section class="route-grid">
@@ -347,7 +347,17 @@ document.getElementById("btn-apple-login")?.addEventListener("click", async () =
 api.on("auth:login-success", async (session) => { setLoginBusy(false); try { await afterLogin(session); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); } });
 api.on("auth:login-error", ({ error }) => { setLoginBusy(false); showLoginError(error || "Login gagal."); });
 els.btnLogout.addEventListener("click", async () => { await api.invoke("auth:logout"); setStatus(false); showLogin(); });
-els.btnToggle.addEventListener("click", async () => { els.btnToggle.disabled = true; try { const res = await api.invoke(running ? "monitor:stop" : "monitor:start"); if (!res.ok && !running) setText(els.statusText, res.error || "Gagal memulai."); } finally { els.btnToggle.disabled = false; } });
+if (els.btnToggle) {
+  els.btnToggle.addEventListener("click", async () => {
+    els.btnToggle.disabled = true;
+    try {
+      const res = await api.invoke(running ? "monitor:stop" : "monitor:start");
+      if (!res.ok && !running) setText(els.statusText, res.error || "Gagal memulai.");
+    } finally {
+      els.btnToggle.disabled = false;
+    }
+  });
+}
 api.on("monitor:sample", (sample) => {
   if (!sample) return;
   lastSample = sample;
@@ -371,8 +381,22 @@ async function refreshSession() {
   const res = await api.invoke("auth:session");
   if (!res.ok || !res.data?.hasToken) { showLogin(); return; }
   showDashboard(res.data);
-  const status = await api.invoke("monitor:status");
-  if (status.ok) { setStatus(status.data.running); setText(els.deviceIdCompact, status.data.deviceId || "Device registered after start"); }
+  
+  // Start monitoring automatically on launch/login
+  const start = await api.invoke("monitor:start");
+  if (start.ok) {
+    setStatus(true);
+    if (start.deviceId) {
+      setText(els.deviceIdCompact, start.deviceId);
+    }
+  } else {
+    // If auto-start failed, fallback to check status
+    const status = await api.invoke("monitor:status");
+    if (status.ok) {
+      setStatus(status.data.running);
+      setText(els.deviceIdCompact, status.data.deviceId || "Device registered after start");
+    }
+  }
 }
 
 refreshSession().catch(() => showLogin());

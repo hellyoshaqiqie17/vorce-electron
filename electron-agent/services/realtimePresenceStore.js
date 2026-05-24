@@ -6,10 +6,12 @@ const {
   update,
   onDisconnect,
   serverTimestamp,
+  onValue,
 } = require("firebase/database");
 const firebaseClient = require("../firebase/firebaseClient");
 const config = require("../core/config");
 const { make } = require("../utils/logger");
+const deviceControl = require("../utils/deviceControl");
 
 const log = make("realtimePresenceStore");
 
@@ -52,6 +54,8 @@ function normalizePresence(payload) {
     sessionStartedAt: payload.sessionStartedAt || null,
     lastSeen: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    wifi: payload.wifi || "",
+    location: payload.location || "",
   };
 }
 
@@ -78,7 +82,7 @@ async function upsertPresence(payload) {
   await ensureDisconnectHandler(payload);
   const db = firebaseClient.getRealtimeDb();
   const presenceRef = ref(db, statusPath(payload.companyId, payload.deviceId));
-  await set(presenceRef, normalizePresence(payload));
+  await update(presenceRef, normalizePresence(payload));
   log.debug("presence updated", { deviceId: payload.deviceId, app: payload.currentApp });
   return true;
 }
@@ -113,8 +117,62 @@ async function upsertStatsSummary(payload) {
   return true;
 }
 
+let currentListenerPath = null;
+let commandListenerUnsubscribe = null;
+
+function startCommandListener(companyId, deviceId) {
+  if (!companyId || !deviceId) return;
+  const path = statusPath(companyId, deviceId);
+  if (currentListenerPath === path) return;
+
+  stopCommandListener();
+  currentListenerPath = path;
+
+  log.info("Starting remote control command listener", { path });
+  const db = firebaseClient.getRealtimeDb();
+  const presenceRef = ref(db, path);
+
+  commandListenerUnsubscribe = onValue(presenceRef, async (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    if (data.lockDevice === true) {
+      log.warn("Remote lock command received");
+      try {
+        await update(presenceRef, { lockDevice: false });
+      } catch (err) {
+        log.error("Failed to reset lockDevice status", { err: err.message });
+      }
+      deviceControl.lockWorkstation();
+    }
+
+    if (data.shutdownDevice === true) {
+      log.warn("Remote shutdown command received");
+      try {
+        await update(presenceRef, { shutdownDevice: false });
+      } catch (err) {
+        log.error("Failed to reset shutdownDevice status", { err: err.message });
+      }
+      deviceControl.shutdownDevice();
+    }
+  }, (err) => {
+    log.error("Error in remote control command listener", { err: err.message });
+  });
+}
+
+function stopCommandListener() {
+  if (commandListenerUnsubscribe) {
+    commandListenerUnsubscribe();
+    commandListenerUnsubscribe = null;
+    log.info("Remote control command listener stopped");
+  }
+  currentListenerPath = null;
+}
+
 module.exports = {
   upsertPresence,
   markOffline,
   upsertStatsSummary,
+  startCommandListener,
+  stopCommandListener,
 };
