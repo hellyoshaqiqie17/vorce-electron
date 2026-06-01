@@ -12,7 +12,7 @@
         <div class="login-container">
           <div class="login-left">
             <div class="login-left-content">
-              <img src="../vorcelogo/vorce.png" alt="Vorce" class="login-logo-img" />
+              <img src="../vorcelogo/VLinked.png" alt="Vlinked" class="login-logo-img" />
               <p class="login-eyebrow">Monitor with ease</p>
               <h1 class="login-headline">Speed up your work<br>with <span class="text-gradient">Vlinked</span></h1>
               <p class="login-tagline">Real-time device intelligence and workforce analytics platform.</p>
@@ -52,14 +52,14 @@
               </div>
               <p id="login-error" class="surface-error" hidden></p>
             </div>
-            <p class="login-footer">© 2026 Vorce. All rights reserved.</p>
+            <p class="login-footer">© 2026 Vlinked. All rights reserved.</p>
           </div>
         </div>
       </section>
 
       <section id="view-dashboard" class="dashboard-shell" hidden>
         <aside class="sidebar">
-          <div class="sidebar-brand"><img src="../vorcelogo/vorce.png" alt="Vorce" class="sidebar-logo" /><div><strong>VORCE</strong><span>Device Intel</span></div></div>
+          <div class="sidebar-brand"><img src="../vorcelogo/VLinked.png" alt="Vlinked" class="sidebar-logo" /><div><strong>Vlinked</strong><span>Device Intel</span></div></div>
           <nav class="nav-list" aria-label="Primary navigation">
             <button class="nav-item active" type="button" data-route="dashboard"><span>◇</span>Dashboard</button><button class="nav-item" type="button" data-route="devices"><span>▣</span>Devices</button><button class="nav-item" type="button" data-route="live"><span>◉</span>Live Monitoring</button><button class="nav-item" type="button" data-route="analytics"><span>▰</span>Analytics</button><button class="nav-item" type="button" data-route="timeline"><span>⌁</span>Activity Timeline</button><button class="nav-item" type="button" data-route="sessions"><span>◌</span>Employee Sessions</button><button class="nav-item" type="button" data-route="alerts"><span>△</span>Alerts</button><button class="nav-item" type="button" data-route="settings"><span>⚙</span>Settings</button>
           </nav>
@@ -69,7 +69,7 @@
         <section class="workspace">
           <header class="topbar">
             <div class="search-box"><span>⌕</span><input id="global-search" type="text" value="Search devices, apps, sessions..." aria-label="Search" /></div>
-            <div class="topbar-meta"><div class="pill success"><span class="pulse"></span><b id="sync-status">Synced</b></div><div class="meta-card"><span>Company</span><strong id="company-name">VORCE</strong></div><div class="meta-card"><span>Devices</span><strong id="device-count">1</strong></div><div class="meta-card wide"><span>Last sync</span><strong id="last-sync">—</strong></div><button class="icon-button">◔</button><button id="btn-logout" class="btn ghost">Keluar</button></div>
+            <div class="topbar-meta"><div class="pill success"><span class="pulse"></span><b id="sync-status">Synced</b></div><div class="meta-card"><span>Company</span><strong id="company-name">Vlinked</strong></div><div class="meta-card"><span>Devices</span><strong id="device-count">1</strong></div><div class="meta-card wide"><span>Last sync</span><strong id="last-sync">—</strong></div><button class="icon-button">◔</button><button id="btn-logout" class="btn ghost">Keluar</button></div>
           </header>
 
           <section class="hero-panel"><div><p class="eyebrow" id="page-eyebrow">Enterprise Device Intelligence Platform</p><h1 id="page-title">Live Workforce Telemetry</h1><p id="session-email" class="muted"></p></div><div class="hero-health"><span>Health Score</span><strong id="health-score">—</strong><small id="device-id-compact">Device initializing</small></div></section>
@@ -96,6 +96,20 @@
             <article class="panel chart-panel"><div class="panel-head"><div><h2>Network Analytics</h2><p>Upload, download, and quality signal.</p></div></div><svg id="chart-network" class="line-chart compact" viewBox="0 0 360 170"></svg><div class="split-stats"><span>Up <b id="net-up">—</b></span><span>Down <b id="net-down">—</b></span></div></article>
             <article class="panel span-2"><div class="panel-head"><div><h2>Activity Timeline</h2><p>Recent app sessions with duration and switch history.</p></div></div><div id="session-table" class="session-table"></div></article>
             <article class="panel"><div class="panel-head"><div><h2>Storage Analytics</h2><p>Disk usage and available capacity.</p></div></div><div class="storage-meter"><div id="storage-fill"></div></div><div class="split-stats"><span>Used <b id="storage-used">—</b></span><span>Free <b id="storage-free">—</b></span><span>Status <b id="storage-status">Healthy</b></span></div></article>
+            <article class="panel span-2"><div class="panel-head"><div><h2>System Specifications</h2><p>Hardware specifications and network information.</p></div></div>
+              <div class="device-intel" style="margin-top: 10px;">
+                <div class="metric-tile"><span>CPU Type</span><strong id="spec-cpu" style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 4px;">—</strong></div>
+                <div class="metric-tile"><span>RAM Type</span><strong id="spec-ram" style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 4px;">—</strong></div>
+                <div class="metric-tile"><span>GPU Type</span><strong id="spec-gpu" style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 4px;">—</strong></div>
+                <div class="metric-tile"><span>SSD Type</span><strong id="spec-ssd" style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 4px;">—</strong></div>
+                <div class="metric-tile"><span>IP Lokal</span><strong id="spec-ip" style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 4px;">—</strong></div>
+                <div class="metric-tile"><span>Mac Address</span><strong id="spec-mac" style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 4px;">—</strong></div>
+              </div>
+            </article>
+            <article class="panel"><div class="panel-head"><div><h2>GPU Analytics</h2><p>Graphics processor load and dynamic usage.</p></div></div>
+              <div class="donut-wrap"><svg id="donut-gpu" class="donut" viewBox="0 0 160 160"></svg><div><strong id="gpu-now">—</strong><span id="gpu-detail">GPU load</span></div></div>
+              <div class="pressure" id="gpu-status">GPU status healthy</div>
+            </article>
           </section>
           </section>
           <section id="route-content" class="page-view route-content" aria-live="polite"></section>

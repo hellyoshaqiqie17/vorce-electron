@@ -14,7 +14,7 @@ const path = require("path");
 const http = require("http");
 const { exec } = require("child_process");
 const { shell, nativeImage } = require("electron");
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, systemPreferences } = require("electron");
 
 // Disable Edge/Chromium built-in sidebar before app is ready
 app.commandLine.appendSwitch("disable-features", "msEdgeSidebarV2,msEdgeSidebar,EdgeSidebar");
@@ -242,6 +242,28 @@ async function fetchAppleAuthUrl(continueUri) {
 // App icon will use the SVG file - on Windows it falls back to default if not .ico
 // For proper Windows icon, convert vorce-logo.svg to .ico externally
 
+function checkAccessibility() {
+  if (process.platform !== "darwin") return true;
+  return systemPreferences.isTrustedAccessibilityClient(false);
+}
+
+function checkAutomation() {
+  return new Promise((resolve) => {
+    if (process.platform !== "darwin") {
+      resolve(true);
+      return;
+    }
+    // Check if we can control System Events via AppleScript without blocking
+    exec("osascript -e 'tell application \"System Events\" to get name'", { timeout: 2000 }, (err) => {
+      if (err) {
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -249,7 +271,7 @@ function createWindow() {
     minWidth: 1180,
     minHeight: 760,
     title: "Vlinked",
-    icon: path.join(__dirname, "vorcelogo", "vorce.png"),
+    icon: path.join(__dirname, "vorcelogo", "VLinked.png"),
     show: false,
     frame: false,
     titleBarStyle: "hidden",
@@ -274,11 +296,56 @@ function createWindow() {
     mainWindow.webContents.setZoomFactor(0.85);
     mainWindow.show();
   });
+
+  let isQuitting = false;
+  mainWindow.on("close", async (e) => {
+    if (isQuitting) return;
+
+    e.preventDefault();
+
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: "question",
+      buttons: ["Batal", "Keluar"],
+      defaultId: 1,
+      cancelId: 0,
+      title: "Verifikasi Keluar",
+      message: "Apakah Anda yakin ingin menutup aplikasi Vlinked?",
+    });
+
+    if (choice === 1) {
+      isQuitting = true;
+      try {
+        log.info("App close confirmed, running cleanup...");
+        // Hide the window immediately so it feels fast, while performing cleanup in background
+        mainWindow.hide();
+        await monitor.stop();
+        await deviceService.markOffline();
+        await localApiServer.stop();
+      } catch (err) {
+        log.error("Error during app close cleanup", { err: err.message });
+      } finally {
+        mainWindow.destroy();
+      }
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
 
-  mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+  if (process.platform === "darwin") {
+    const hasAccessibility = checkAccessibility();
+    checkAutomation().then((hasAutomation) => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      if (hasAccessibility && hasAutomation) {
+        mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+      } else {
+        mainWindow.loadFile(path.join(__dirname, "renderer", "permissions.html"));
+      }
+    });
+  } else {
+    mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+  }
 
   // Hide any Edge/Chromium sidebar overlay after page loads
   mainWindow.webContents.on("dom-ready", () => {
@@ -648,6 +715,57 @@ function setupIpc() {
       deviceId: deviceService.getDeviceId(),
     },
   }));
+
+  ipcMain.handle("device:get-history", async () => {
+    try {
+      const state = deviceService.getRegistrationState();
+      if (!state?.deviceId || !state?.binding?.companyId) {
+        return { ok: false, error: "Device belum teregistrasi." };
+      }
+      const { getDoc } = require("firebase/firestore");
+      const monitoringStore = require("./services/firestoreMonitoringStore");
+      const docRef = monitoringStore.getDeviceRef(state.binding.companyId, state.deviceId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        return {
+          ok: true,
+          data: {
+            cpuHistory: data.cpuHistory || [],
+            ramHistory: data.ramHistory || [],
+            gpuHistory: data.gpuHistory || [],
+            ssdHistory: data.ssdHistory || [],
+          }
+        };
+      }
+      return { ok: true, data: { cpuHistory: [], ramHistory: [], gpuHistory: [], ssdHistory: [] } };
+    } catch (err) {
+      log.error("Failed to get device history", { err: err.message });
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle("permissions:check", async () => {
+    const accessibility = checkAccessibility();
+    const automation = await checkAutomation();
+    const ok = accessibility && automation;
+    
+    if (ok && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+    }
+    
+    return { ok, accessibility, automation };
+  });
+
+  ipcMain.handle("permissions:request-accessibility", () => {
+    shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility");
+    return { ok: true };
+  });
+
+  ipcMain.handle("permissions:request-automation", () => {
+    shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
+    return { ok: true };
+  });
 }
 
 // Cleanup on app quit
@@ -668,6 +786,20 @@ app.whenReady().then(async () => {
   await localApiServer.start();
   setupIpc();
   createWindow();
+
+  if (process.platform === "darwin") {
+    try {
+      const iconPath = path.join(__dirname, "vorcelogo", "VLinked.png");
+      const image = nativeImage.createFromPath(iconPath);
+      if (!image.isEmpty()) {
+        app.dock.setIcon(image);
+      } else {
+        log.warn("macOS dock icon image is empty or not found at path", { iconPath });
+      }
+    } catch (err) {
+      log.error("Failed to set macOS dock icon", { err: err.message });
+    }
+  }
 
   // Handle vlinked:// protocol on macOS
   app.on("open-url", (event, url) => {

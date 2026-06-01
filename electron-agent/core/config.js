@@ -1,5 +1,8 @@
 "use strict";
 
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+
 /**
  * Central configuration for the VORCE Electron Agent.
  *
@@ -54,9 +57,9 @@ const config = {
   },
 
   storage: {
-    tokenFile: "vorce-agent-token.bin",
-    stateFile: "vorce-agent-state.json",
-    statsBufferFile: "vorce-agent-stats-buffer.json",
+    tokenFile: "vlinked-agent-token.bin",
+    stateFile: "vlinked-agent-state.json",
+    statsBufferFile: "vlinked-agent-stats-buffer.json",
   },
 
   idleThresholdSeconds: 60,

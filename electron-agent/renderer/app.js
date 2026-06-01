@@ -14,6 +14,8 @@ const els = {
   topRamApps: $("#top-ram-apps"),
   appCategory: $("#app-category"), appAvatar: $("#app-avatar"), activeApp: $("#active-app"), activeTitle: $("#active-title"), activeExecutable: $("#active-executable"), activeDuration: $("#active-duration"), focusTimeline: $("#focus-timeline"), usageBreakdown: $("#usage-breakdown"), sessionTable: $("#session-table"),
   activeIdleRatio: $("#active-idle-ratio"), switchFrequency: $("#switch-frequency"), memorySpikes: $("#memory-spikes"), anomalyState: $("#anomaly-state"),
+  specCpu: $("#spec-cpu"), specRam: $("#spec-ram"), specGpu: $("#spec-gpu"), specSsd: $("#spec-ssd"), specIp: $("#spec-ip"), specMac: $("#spec-mac"),
+  donutGpu: $("#donut-gpu"), gpuNow: $("#gpu-now"), gpuDetail: $("#gpu-detail"), gpuStatus: $("#gpu-status"),
   navItems: document.querySelectorAll(".nav-item"), pageDashboard: $("#page-dashboard"), routeContent: $("#route-content"), pageTitle: $("#page-title"), pageEyebrow: $("#page-eyebrow"),
 };
 
@@ -92,7 +94,7 @@ function showDashboard(session) {
   sessionInfo = session || sessionInfo;
   els.viewLogin.hidden = true; els.viewDashboard.hidden = false;
   setText(els.sessionEmail, session?.email ? `Masuk sebagai ${session.email}` : "Secure session active");
-  setText(els.companyName, session?.companyName || session?.companyId || "VORCE");
+  setText(els.companyName, session?.companyName || session?.companyId || "Vlinked");
 }
 function setStatus(isRunning) {
   running = Boolean(isRunning);
@@ -144,7 +146,7 @@ function renderRoute(route) {
     devices: `
       <section class="route-grid">
         ${panel("Current Device Intelligence", "Live state, heartbeat, focused app, and health posture.", `<div class="device-intel">${metricTile("Device state", running ? "Online" : "Standby", running ? "good" : "")}${metricTile("Health score", health)}${metricTile("CPU source", app.appName || "—")}${metricTile("RAM pressure", pct(ram), ram > 88 ? "bad" : "good")}</div><div class="session-row"><div><strong id="route-device-id">${els.deviceIdCompact.textContent}</strong><span>${sessionInfo?.email || "Authenticated user"}</span></div><strong>${sessionInfo?.companyId || "Company"}</strong></div>`)}
-        ${panel("Top Processes", "Foreground process enriched from desktop telemetry.", `<div class="process-heatmap"><div style="height:${clamp(cpu,8,100)}%"></div><div style="height:${clamp(ram,8,100)}%"></div><div style="height:${clamp((sample.network?.downloadKBps || 0) / 10,8,100)}%"></div><div style="height:${clamp((sample.network?.uploadKBps || 0) / 10,8,100)}%"></div></div><div class="heatmap-labels"><span>CPU<b>${pct(cpu)}</b></span><span>RAM<b>${pct(ram)}</b></span><span>Down<b>${kb(sample.network?.downloadKBps || 0)}</b></span><span>Up<b>${kb(sample.network?.uploadKBps || 0)}</b></span></div>`)}
+        ${panel("Hardware Specs History", "Timeline of hardware changes detected on this workstation.", `<div id="device-hardware-history" class="signal-list" style="max-height: 280px; overflow-y: auto;"><div class="empty-state compact"><strong>Fetching history...</strong></div></div>`)}
       </section>`,
     live: `
       <section class="route-grid">
@@ -180,6 +182,54 @@ function renderRoute(route) {
   els.routeContent.innerHTML = routeBodies[route] || routeBodies.dashboard || "";
   const liveChart = $("#route-live-chart");
   if (liveChart) svgLine(liveChart, analytics.cpu, { width: 720, height: 220, max: 100 });
+
+  if (route === "devices") {
+    api.invoke("device:get-history").then(res => {
+      const listEl = $("#device-hardware-history");
+      if (!listEl) return;
+      if (!res.ok || !res.data) {
+        listEl.innerHTML = `<div class="empty-state compact"><strong>Gagal mengambil histori</strong><span>${res.error || ""}</span></div>`;
+        return;
+      }
+      const { cpuHistory = [], ramHistory = [], gpuHistory = [], ssdHistory = [] } = res.data;
+      const allHistory = [];
+      cpuHistory.forEach(h => allHistory.push({ type: "CPU", ...h }));
+      ramHistory.forEach(h => allHistory.push({ type: "RAM", ...h }));
+      gpuHistory.forEach(h => allHistory.push({ type: "GPU", ...h }));
+      ssdHistory.forEach(h => allHistory.push({ type: "SSD/Disk", ...h }));
+
+      allHistory.sort((a, b) => {
+        const tA = a.timestamp?.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime();
+        const tB = b.timestamp?.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp).getTime();
+        return tB - tA;
+      });
+
+      if (allHistory.length === 0) {
+        listEl.innerHTML = `<div class="empty-state compact"><strong>No changes detected</strong><span>Hardware remains unchanged since registration.</span></div>`;
+        return;
+      }
+
+      listEl.innerHTML = allHistory.map(h => {
+        let dateStr = "Unknown Date";
+        if (h.timestamp) {
+          const ms = h.timestamp.seconds ? h.timestamp.seconds * 1000 : new Date(h.timestamp).getTime();
+          dateStr = new Date(ms).toLocaleString("id-ID");
+        }
+        return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; background: var(--surface-alt); margin-bottom: 8px;">
+          <div>
+            <strong style="color: var(--primary); font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 2px;">${h.type}</strong>
+            <span style="font-size: 13px; color: var(--text); font-weight: 500;">${h.value}</span>
+          </div>
+          <small style="color: var(--text-tertiary); font-size: 11px;">${dateStr}</small>
+        </div>`;
+      }).join("");
+    }).catch(err => {
+      const listEl = $("#device-hardware-history");
+      if (listEl) {
+        listEl.innerHTML = `<div class="empty-state compact"><strong>Gagal mengambil histori</strong><span>${err.message || ""}</span></div>`;
+      }
+    });
+  }
 }
 
 function switchRoute(route) {
@@ -324,6 +374,11 @@ function renderDashboard(sample) {
   setText(els.activeIdleRatio, `${activeRatio}% active`); setText(els.switchFrequency, `${analytics.switches} switches`); setText(els.memorySpikes, String(analytics.memorySpikes)); setText(els.anomalyState, cpu > 92 || ram > 92 ? "Anomaly detected" : "Stable");
   setText(els.lastSync, time(sample.timestamp));
 
+  const gpu = Number(sample.gpu?.usagePercent ?? sample.gpuUsage) || 0;
+  setText(els.gpuNow, pct(gpu));
+  donut(els.donutGpu, gpu);
+  setText(els.gpuStatus, gpu > 85 ? "Critical load" : gpu > 60 ? "Moderate load" : "GPU load healthy");
+
   svgLine(els.chartCpu, analytics.cpu, { width: 720, height: 220, max: 100 }); svgLine(els.chartNetwork, analytics.net, { width: 360, height: 170, max: Math.max(100, ...analytics.net) }); donut(els.donutRam, ram);
   spark("#spark-cpu", analytics.cpu); spark("#spark-ram", analytics.ram); spark("#spark-network", analytics.net.map(v => Math.min(100, v))); spark("#spark-health", analytics.health); spark("#spark-active-devices", [80,82,88,91,96,100]); spark("#spark-online-employees", [70,76,82,88,96,100]); spark("#spark-sessions", analytics.sessions.map((_,i)=>20+i*12).concat([80])); spark("#spark-processes", analytics.cpu.map(v=>Math.min(100, v+10)));
   renderUsage(); renderTimeline(); renderTopRamApps(sample.topProcesses);
@@ -340,6 +395,15 @@ api.on("device:info", ({ deviceId, info, intervalMs }) => {
   setText(els.deviceIdCompact, deviceId || info?.hostname || "Registered device");
   setText(els.deviceCount, "1");
   if (info?.hostname) els.deviceIdCompact.title = `${info.hostname} • ${info.os || "OS"} • ${info.ram?.totalGB || "—"}GB RAM • ${Math.round((intervalMs || 5000)/1000)}s interval`;
+  
+  if (info) {
+    setText(els.specCpu, info.cpu?.brand || info.cpuModel || "Unknown");
+    setText(els.specRam, `${info.ram?.totalGB || info.totalRam || 0} GB ${info.ram?.type || ""}`.trim());
+    setText(els.specGpu, info.gpu?.model || "Unknown");
+    setText(els.specSsd, info.disk ? `${info.disk.name || "Unknown"} (${info.disk.sizeGB || 0} GB)` : "Unknown");
+    setText(els.specIp, info.network?.localIp || "Unknown");
+    setText(els.specMac, info.network?.macAddress || "Unknown");
+  }
 });
 
 els.btnGoogleLogin.addEventListener("click", async () => { showLoginError(""); setLoginBusy(true); try { await api.invoke("auth:open-google"); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); setLoginBusy(false); } });

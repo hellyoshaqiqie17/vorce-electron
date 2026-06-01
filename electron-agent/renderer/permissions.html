@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'" />
+    <title>Vlinked - Izin Diperlukan</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .permissions-form-area {
+        width: 100%;
+        max-width: 440px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .perm-title {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text);
+        margin: 0;
+        letter-spacing: -.02em;
+      }
+      .perm-subtitle {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin: 0;
+        line-height: 1.5;
+      }
+      .perm-card {
+        padding: 20px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: #ffffff;
+        position: relative;
+        overflow: hidden;
+        transition: box-shadow 0.2s, border-color 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .perm-card:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-muted);
+      }
+      .perm-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .perm-name {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text);
+      }
+      .perm-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .perm-badge.inactive {
+        background: var(--red-light);
+        color: var(--red);
+      }
+      .perm-badge.active {
+        background: var(--green-light);
+        color: var(--green);
+      }
+      .perm-desc {
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin: 0;
+        line-height: 1.4;
+      }
+      .perm-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface-alt);
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .12s, border-color .12s;
+        width: fit-content;
+      }
+      .perm-btn:hover {
+        background: var(--primary-light);
+        color: var(--primary);
+        border-color: var(--primary-muted);
+      }
+      .btn-start-app {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 14px;
+        background: var(--primary);
+        color: #ffffff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity .15s;
+        margin-top: 8px;
+      }
+      .btn-start-app:hover {
+        opacity: .9;
+      }
+      .polling-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text-tertiary);
+        margin-top: 16px;
+      }
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--border);
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app">
+      <section class="login-shell">
+        <div class="login-container">
+          <div class="login-left">
+            <div class="login-left-content">
+              <img src="../vorcelogo/VLinked.png" alt="Vlinked" class="login-logo-img" />
+              <p class="login-eyebrow">Pengaturan Keamanan macOS</p>
+              <h1 class="login-headline">Izin Akses<br>Diperlukan</h1>
+              <p class="login-tagline">Untuk mengaktifkan fitur remote lock screen dan remote shutdown, Vlinked membutuhkan izin sistem keamanan tambahan dari macOS Anda.</p>
+            </div>
+            <div class="login-partners">
+              <p>Mengapa ini diperlukan?</p>
+              <div class="partner-logos">
+                <span>🔒 Privasi Pengguna</span>
+                <span>🛠️ Kontrol AppleScript</span>
+                <span>🛡️ System Sandbox</span>
+              </div>
+            </div>
+          </div>
+          <div class="login-right">
+            <div class="permissions-form-area">
+              <div>
+                <h2 class="perm-title">Konfigurasi Hak Akses</h2>
+                <p class="perm-subtitle">Aktifkan izin-izin berikut pada pengaturan sistem macOS Anda.</p>
+              </div>
+
+              <!-- Kartu 1: Aksesibilitas -->
+              <div class="perm-card" id="card-accessibility">
+                <div class="perm-header">
+                  <span class="perm-name">1. Aksesibilitas (Accessibility)</span>
+                  <span class="perm-badge inactive" id="badge-accessibility">Belum Aktif</span>
+                </div>
+                <p class="perm-desc">Mengizinkan Vlinked untuk mengunci workstation secara aman menggunakan jalan pintas sistem macOS.</p>
+                <button type="button" class="perm-btn" id="btn-request-accessibility">
+                  🔧 Buka Pengaturan Aksesibilitas
+                </button>
+              </div>
+
+              <!-- Kartu 2: Otomatisasi -->
+              <div class="perm-card" id="card-automation">
+                <div class="perm-header">
+                  <span class="perm-name">2. Otomatisasi (Automation)</span>
+                  <span class="perm-badge inactive" id="badge-automation">Belum Aktif</span>
+                </div>
+                <p class="perm-desc">Mengizinkan Vlinked untuk mengontrol proses "System Events" agar dapat memproses perintah shutdown jarak jauh.</p>
+                <button type="button" class="perm-btn" id="btn-request-automation">
+                  ⚙️ Buka Pengaturan Otomatisasi
+                </button>
+              </div>
+
+              <div>
+                <button type="button" class="btn-start-app" id="btn-check-start">
+                  Periksa Izin & Mulai Aplikasi
+                </button>
+                
+                <div class="polling-indicator">
+                  <div class="spinner"></div>
+                  <span>Memantau perubahan izin secara langsung...</span>
+                </div>
+              </div>
+            </div>
+            <p class="login-footer">© 2026 Vlinked. All rights reserved.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="permissions.js"></script>
+  </body>
+</html>

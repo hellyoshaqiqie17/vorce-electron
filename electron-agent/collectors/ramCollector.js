@@ -26,4 +26,24 @@ async function collectRam() {
   };
 }
 
-module.exports = { collectRam };
+async function collectRamLayout() {
+  try {
+    const layout = await si.memLayout();
+    if (!Array.isArray(layout) || layout.length === 0) {
+      return { type: "Unknown", clockSpeed: 0, manufacturer: "Unknown" };
+    }
+    const types = layout.map((x) => x.type).filter(Boolean);
+    const uniqueTypes = [...new Set(types)];
+    const type = uniqueTypes.join("/") || "Unknown";
+    const clockSpeed = layout[0]?.clockSpeed || 0;
+    const manufacturers = layout.map((x) => x.manufacturer).filter(Boolean);
+    const uniqueManufacturers = [...new Set(manufacturers)];
+    const manufacturer = uniqueManufacturers.join("/") || "Unknown";
+    return { type, clockSpeed, manufacturer };
+  } catch (err) {
+    return { type: "Unknown", clockSpeed: 0, manufacturer: "Unknown" };
+  }
+}
+
+module.exports = { collectRam, collectRamLayout };
+

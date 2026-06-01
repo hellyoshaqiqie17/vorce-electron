@@ -6,7 +6,8 @@ const { readMachineId } = require("../services/deviceIdentity");
 const { collectBattery } = require("./batteryCollector");
 const { collectGpu } = require("./gpuCollector");
 const { collectNetwork } = require("./networkCollector");
-const { collectRam } = require("./ramCollector");
+const { collectRam, collectRamLayout } = require("./ramCollector");
+const { collectDiskLayout } = require("./storageCollector");
 
 function round(value, digits = 1) {
   const n = Number(value);
@@ -24,11 +25,13 @@ async function fallback(valuePromise, fallbackValue) {
 }
 
 async function collectDeviceInfo() {
-  const [machineId, osInfo, cpu, ram, gpu, battery, network] = await Promise.all([
+  const [machineId, osInfo, cpu, ram, ramLayout, diskLayout, gpu, battery, network] = await Promise.all([
     fallback(readMachineId(), ""),
     fallback(si.osInfo(), {}),
     fallback(si.cpu(), {}),
     fallback(collectRam(), { totalGB: round(os.totalmem() / 1024 / 1024 / 1024, 2) }),
+    fallback(collectRamLayout(), { type: "Unknown", clockSpeed: 0 }),
+    fallback(collectDiskLayout(), { type: "Unknown", name: "Unknown", sizeGB: 0, interfaceType: "Unknown" }),
     fallback(collectGpu(), { vendor: "", model: "", vramMB: 0 }),
     fallback(collectBattery(), { hasBattery: false, percent: 0, charging: false }),
     fallback(collectNetwork(), { localIp: "", macAddress: "" }),
@@ -58,8 +61,12 @@ async function collectDeviceInfo() {
     },
     ram: {
       totalGB: Number(ram.totalGB) || 0,
+      type: ramLayout.type || "Unknown",
+      clockSpeed: Number(ramLayout.clockSpeed) || 0,
+      manufacturer: ramLayout.manufacturer || "Unknown",
     },
     gpu,
+    disk: diskLayout,
     battery,
     network: {
       localIp: network.localIp || "",
@@ -72,3 +79,4 @@ async function collectDeviceInfo() {
 }
 
 module.exports = { collectDeviceInfo };
+

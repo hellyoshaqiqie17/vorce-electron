@@ -39,4 +39,23 @@ async function collectStorage() {
   };
 }
 
-module.exports = { collectStorage };
+async function collectDiskLayout() {
+  try {
+    const disks = await si.diskLayout();
+    if (!Array.isArray(disks) || disks.length === 0) {
+      return { type: "Unknown", name: "Unknown", sizeGB: 0, interfaceType: "Unknown" };
+    }
+    const primary = disks[0];
+    const type = primary.type || "SSD";
+    const name = primary.name || "";
+    const vendor = primary.vendor || "";
+    const sizeGB = round(primary.size / BYTES_PER_GB, 2);
+    const interfaceType = primary.interfaceType || "";
+    return { type, name, vendor, sizeGB, interfaceType };
+  } catch (err) {
+    return { type: "Unknown", name: "Unknown", sizeGB: 0, interfaceType: "Unknown" };
+  }
+}
+
+module.exports = { collectStorage, collectDiskLayout };
+

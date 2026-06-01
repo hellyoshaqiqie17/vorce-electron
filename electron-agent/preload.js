@@ -21,6 +21,10 @@ const channels = {
     "monitor:start",
     "monitor:stop",
     "monitor:status",
+    "device:get-history",
+    "permissions:check",
+    "permissions:request-accessibility",
+    "permissions:request-automation",
   ],
   on: [
     "auth:login-success",
@@ -37,7 +41,7 @@ function ensure(channel, allowed) {
   }
 }
 
-contextBridge.exposeInMainWorld("vorceAgent", {
+contextBridge.exposeInMainWorld("vlinkedAgent", {
   invoke: (channel, payload) => {
     ensure(channel, channels.invoke);
     return ipcRenderer.invoke(channel, payload);

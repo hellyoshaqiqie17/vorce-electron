@@ -36,12 +36,37 @@ function normalizePresence(payload) {
     ? payload.state
     : "online";
 
-  return {
+  if (state === "offline") {
+    const out = {
+      deviceId: payload.deviceId,
+      companyId: payload.companyId,
+      userId: payload.userId,
+      state: "offline",
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      currentApp: null,
+      currentCategory: null,
+      activeWindow: null,
+      executable: null,
+      cpuNow: null,
+      ramNow: null,
+      gpuNow: null,
+      healthScore: null,
+      sessionId: null,
+      sessionStartedAt: null,
+      wifi: null,
+      location: null,
+      localIp: null,
+    };
+    if (payload.userEmail) out.userEmail = payload.userEmail;
+    if (payload.userName) out.userName = payload.userName;
+    return out;
+  }
+
+  const out = {
     deviceId: payload.deviceId,
     companyId: payload.companyId,
     userId: payload.userId,
-    userEmail: payload.userEmail || "",
-    userName: payload.userName || "",
     state,
     currentApp: payload.currentApp || "Unknown",
     currentCategory: payload.currentCategory || "unknown",
@@ -49,6 +74,7 @@ function normalizePresence(payload) {
     executable: payload.executable || "",
     cpuNow: Number(payload.cpuNow) || 0,
     ramNow: Number(payload.ramNow) || 0,
+    gpuNow: Number(payload.gpuNow) || 0,
     healthScore: Number(payload.healthScore) || 0,
     sessionId: payload.sessionId || null,
     sessionStartedAt: payload.sessionStartedAt || null,
@@ -56,8 +82,15 @@ function normalizePresence(payload) {
     updatedAt: serverTimestamp(),
     wifi: payload.wifi || "",
     location: payload.location || "",
+    localIp: payload.localIp || "",
   };
+
+  if (payload.userEmail) out.userEmail = payload.userEmail;
+  if (payload.userName) out.userName = payload.userName;
+
+  return out;
 }
+
 
 async function ensureDisconnectHandler(payload) {
   const path = statusPath(payload.companyId, payload.deviceId);
@@ -96,9 +129,24 @@ async function markOffline({ deviceId, binding }) {
     deviceId,
     companyId: binding.companyId,
     userId: binding.userId,
+    userName: binding.displayName || "",
+    userEmail: binding.email || "",
     state: "offline",
     lastSeen: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    currentApp: null,
+    currentCategory: null,
+    activeWindow: null,
+    executable: null,
+    cpuNow: null,
+    ramNow: null,
+    gpuNow: null,
+    healthScore: null,
+    sessionId: null,
+    sessionStartedAt: null,
+    wifi: null,
+    location: null,
+    localIp: null,
   });
   log.info("presence offline", { deviceId });
   return true;

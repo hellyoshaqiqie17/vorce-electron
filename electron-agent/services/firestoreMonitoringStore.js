@@ -34,6 +34,37 @@ function getActivitySessionsRef(companyId, deviceId) {
 async function upsertDevice({ deviceId, binding, info, status = "online" }) {
   const ref = getDeviceRef(binding.companyId, deviceId);
   const existing = await getDoc(ref);
+  const existingData = existing.exists() ? existing.data() : {};
+
+  // Construct current hardware spec strings with brands for history comparison
+  const brandCpu = [info.cpu?.manufacturer, info.cpu?.brand || info.cpuModel].filter(Boolean).join(" ").trim() || "Unknown CPU";
+  const brandRam = `${info.ram?.totalGB || info.totalRam || 0} GB ${info.ram?.type || ""} (${info.ram?.manufacturer || "Unknown Brand"})`.trim();
+  const brandGpu = [info.gpu?.vendor, info.gpu?.model].filter(Boolean).join(" ").trim() || "Unknown GPU";
+  const brandSsd = info.disk ? `${info.disk.vendor || ""} ${info.disk.name || "Unknown SSD"} (${info.disk.sizeGB || 0} GB) ${info.disk.type || ""}`.trim().replace(/\s+/g, " ") : "Unknown SSD";
+
+  // History update helper function
+  function updateHistoryList(history, newValue) {
+    const list = Array.isArray(history) ? [...history] : [];
+    const entry = {
+      timestamp: new Date(),
+      value: newValue
+    };
+    if (list.length === 0) {
+      list.push(entry);
+    } else {
+      const lastEntry = list[list.length - 1];
+      if (lastEntry.value !== newValue) {
+        list.push(entry);
+      }
+    }
+    return list;
+  }
+
+  const cpuHistory = updateHistoryList(existingData.cpuHistory, brandCpu);
+  const ramHistory = updateHistoryList(existingData.ramHistory, brandRam);
+  const gpuHistory = updateHistoryList(existingData.gpuHistory, brandGpu);
+  const ssdHistory = updateHistoryList(existingData.ssdHistory, brandSsd);
+
   const payload = {
     deviceId,
     userId: binding.userId,
@@ -58,11 +89,21 @@ async function upsertDevice({ deviceId, binding, info, status = "online" }) {
     },
     ram: {
       totalGB: Number(info.ram?.totalGB ?? info.totalRam) || 0,
+      type: info.ram?.type || "",
+      clockSpeed: Number(info.ram?.clockSpeed) || 0,
+      manufacturer: info.ram?.manufacturer || "",
     },
     gpu: {
       vendor: info.gpu?.vendor || "",
       model: info.gpu?.model || "",
       vramMB: Number(info.gpu?.vramMB) || 0,
+    },
+    disk: info.disk || {
+      type: "",
+      name: "",
+      vendor: "",
+      sizeGB: 0,
+      interfaceType: ""
     },
     battery: {
       hasBattery: Boolean(info.battery?.hasBattery),
@@ -73,6 +114,10 @@ async function upsertDevice({ deviceId, binding, info, status = "online" }) {
       localIp: info.network?.localIp || "",
       macAddress: info.network?.macAddress || "",
     },
+    cpuHistory,
+    ramHistory,
+    gpuHistory,
+    ssdHistory,
     lastSeen: serverTimestamp(),
     status,
     updatedAt: serverTimestamp(),
@@ -94,6 +139,7 @@ async function upsertDevice({ deviceId, binding, info, status = "online" }) {
 
   return payload;
 }
+
 
 async function appendMetric({ deviceId, binding, metric }) {
   const metricsRef = getMetricsRef(binding.companyId, deviceId);

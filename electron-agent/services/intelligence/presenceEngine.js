@@ -57,6 +57,7 @@ function buildPayload({ deviceId, binding, sample, sessionStartedAt, sessionId }
     executable: proc.executable || "",
     cpuNow: Math.round((Number(sample?.cpu?.usagePercent ?? sample?.cpuUsage) || 0) * 10) / 10,
     ramNow: Math.round((Number(sample?.ram?.usagePercent ?? sample?.ramUsage) || 0) * 10) / 10,
+    gpuNow: Math.round((Number(sample?.gpu?.usagePercent ?? sample?.gpuUsage) || 0) * 10) / 10,
     state: deriveState(sample),
     healthScore: computeHealthScore(sample),
     sessionId: sessionId || null,
@@ -64,8 +65,10 @@ function buildPayload({ deviceId, binding, sample, sessionStartedAt, sessionId }
     lastHeartbeat: Math.floor(Date.now() / 1000),
     wifi: sample?.network?.wifi || "",
     location: sample?.network?.location || "Unknown",
+    localIp: sample?.network?.localIp || "",
   };
 }
+
 
 function createEngine({ writer, log }) {
   let lastPayload = null;

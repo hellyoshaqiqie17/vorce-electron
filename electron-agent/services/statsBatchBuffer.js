@@ -49,6 +49,8 @@ function freshState() {
     cpuPeak: 0,
     ramSum: 0,
     ramPeak: 0,
+    gpuSum: 0,
+    gpuPeak: 0,
     switchCount: 0,
     anomalyCount: 0,
     currentApp: null,
@@ -85,6 +87,8 @@ function normalizeState(next) {
   return {
     ...freshState(),
     ...(next && typeof next === "object" ? next : {}),
+    gpuSum: Number(next?.gpuSum) || 0,
+    gpuPeak: Number(next?.gpuPeak) || 0,
     apps: next?.apps && typeof next.apps === "object" ? next.apps : {},
     categories: next?.categories && typeof next.categories === "object" ? next.categories : {},
     productivity: {
@@ -176,6 +180,51 @@ function summarizeApps() {
 
 function buildSummary({ final = false } = {}) {
   if (!state.companyId || !state.userId || !state.deviceId) return null;
+
+  let cpuBrand = "Unknown CPU";
+  let ramBrand = "Unknown Brand";
+  let gpuBrand = "Unknown GPU";
+  let ssdBrand = "Unknown SSD Brand";
+  let hardware = null;
+
+  try {
+    const deviceService = require("./deviceService");
+    const reg = deviceService.getRegistrationState();
+    const info = reg?.info || {};
+
+    cpuBrand = [info.cpu?.manufacturer, info.cpu?.brand || info.cpuModel].filter(Boolean).join(" ").trim() || "Unknown CPU";
+    ramBrand = info.ram?.manufacturer || "Unknown Brand";
+    gpuBrand = [info.gpu?.vendor, info.gpu?.model].filter(Boolean).join(" ").trim() || "Unknown GPU";
+    ssdBrand = info.disk ? `${info.disk.vendor || ""} ${info.disk.name || "Unknown SSD"}`.trim().replace(/\s+/g, " ") : "Unknown SSD";
+
+    hardware = {
+      cpuBrand,
+      gpuBrand,
+      ramBrand,
+      ssdBrand,
+      cpu: {
+        manufacturer: info.cpu?.manufacturer || "",
+        brand: info.cpu?.brand || cpuBrand,
+      },
+      ram: {
+        totalGB: Number(info.ram?.totalGB) || 0,
+        type: info.ram?.type || "",
+        manufacturer: ramBrand,
+      },
+      gpu: {
+        vendor: info.gpu?.vendor || "",
+        model: info.gpu?.model || "",
+      },
+      disk: {
+        type: info.disk?.type || "",
+        name: info.disk?.name || "",
+        vendor: info.disk?.vendor || "",
+      }
+    };
+  } catch (err) {
+    log.warn("failed to resolve device registration state for hardware spec in summary", { err: err.message });
+  }
+
   return {
     summaryId: `${state.userId}_${state.deviceId}_${state.date}`,
     companyId: state.companyId,
@@ -206,7 +255,14 @@ function buildSummary({ final = false } = {}) {
       cpuPeak: round1(state.cpuPeak),
       ramAverage: state.sampleCount ? round1(state.ramSum / state.sampleCount) : 0,
       ramPeak: round1(state.ramPeak),
+      gpuAverage: state.sampleCount ? round1(state.gpuSum / state.sampleCount) : 0,
+      gpuPeak: round1(state.gpuPeak),
     },
+    cpuBrand,
+    gpuBrand,
+    ramBrand,
+    ssdBrand,
+    hardware,
     startedAt: state.startedAt,
     lastSampleAt: state.lastSampleAt,
     generatedAt: Math.floor(Date.now() / 1000),
@@ -231,6 +287,7 @@ function observe({ deviceId, binding, sample, intervalSeconds = 5 }) {
   const isIdle = Boolean(sample?.idle?.isIdle);
   const cpu = Number(sample?.cpu?.usagePercent ?? sample?.cpuUsage) || 0;
   const ram = Number(sample?.ram?.usagePercent ?? sample?.ramUsage) || 0;
+  const gpu = Number(sample?.gpu?.usagePercent ?? sample?.gpuUsage) || 0;
 
   if (state.currentApp && state.currentApp !== appName) state.switchCount += 1;
   if (state.currentApp !== appName) {
@@ -249,8 +306,10 @@ function observe({ deviceId, binding, sample, intervalSeconds = 5 }) {
   state.sampleCount += 1;
   state.cpuSum += cpu;
   state.ramSum += ram;
+  state.gpuSum += gpu;
   if (cpu > state.cpuPeak) state.cpuPeak = cpu;
   if (ram > state.ramPeak) state.ramPeak = ram;
+  if (gpu > state.gpuPeak) state.gpuPeak = gpu;
   state.lastSampleAt = nowSec;
 
   addAppSeconds(appName, category, seconds, cpu, ram);

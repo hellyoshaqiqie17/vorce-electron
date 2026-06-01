@@ -1,7 +1,7 @@
 {
-  "name": "vorce-electron",
+  "name": "vlinked-electron",
   "version": "1.0.0",
-  "description": "VORCE desktop applications built with Electron.",
+  "description": "Vlinked desktop applications built with Electron.",
   "private": true,
   "scripts": {
     "start": "cd electron-agent && npm start",
@@ -9,7 +9,7 @@
     "install:agent": "cd electron-agent && npm install",
     "rebuild": "cd electron-agent && npm run rebuild"
   },
-  "author": "VORCE",
+  "author": "Vlinked",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=18"

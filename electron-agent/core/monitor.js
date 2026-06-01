@@ -19,6 +19,7 @@ const { collectActivity } = require("../collectors/activityCollector");
 const { collectIdle } = require("../collectors/idleCollector");
 const { collectNetwork } = require("../collectors/networkCollector");
 const { collectProcess, collectTopProcesses } = require("../collectors/processCollector");
+const { collectGpuUsage } = require("../collectors/gpuCollector");
 const deviceService = require("../services/deviceService");
 const intelligence = require("../services/intelligence");
 const localApiClient = require("../services/localApiClient");
@@ -49,7 +50,7 @@ async function takeSample() {
     executable: "",
     pid: 0,
   });
-  const [cpu, ram, storage, network, processInfo, topProcesses] = await Promise.all([
+  const [cpu, ram, storage, network, processInfo, topProcesses, gpuUsage] = await Promise.all([
     settle(collectCpu(), { usagePercent: 0, currentSpeedGHz: 0 }),
     settle(collectRam(), { usagePercent: 0, usedGB: 0, freeGB: 0, totalGB: 0 }),
     settle(collectStorage(), { usedGB: 0, freeGB: 0, usagePercent: 0 }),
@@ -61,6 +62,7 @@ async function takeSample() {
       pid: activity.pid,
     }),
     settle(collectTopProcesses(3), []),
+    settle(collectGpuUsage(), 0),
   ]);
   const idle = collectIdle();
 
@@ -69,11 +71,16 @@ async function takeSample() {
     cpu,
     ram,
     storage,
+    gpu: {
+      usagePercent: gpuUsage,
+    },
     network: {
       uploadKBps: network.uploadKBps,
       downloadKBps: network.downloadKBps,
       wifi: network.wifi || "",
       location: network.location || "Unknown",
+      localIp: network.localIp || "",
+      macAddress: network.macAddress || "",
     },
     process: {
       appName: processInfo.appName || activity.appName || "Unknown",
@@ -93,9 +100,11 @@ async function takeSample() {
     },
     cpuUsage: cpu.usagePercent,
     ramUsage: ram.usagePercent,
+    gpuUsage,
     topProcesses,
   };
 }
+
 
 async function tick() {
   if (!running) return;
