@@ -73,6 +73,30 @@ jobs:
             electron-agent/dist/*.deb
           if-no-files-found: ignore
 
+      - name: Authenticate to Google Cloud
+        if: matrix.platform == 'mac' || matrix.platform == 'win'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Upload macOS DMG to Firebase Storage
+        if: matrix.platform == 'mac'
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: 'electron-agent/dist'
+          glob: '*.dmg'
+          destination: 'hora-7394b.firebasestorage.app/Vlinked_Mac'
+          parent: false
+
+      - name: Upload Windows EXE to Firebase Storage
+        if: matrix.platform == 'win'
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: 'electron-agent/dist'
+          glob: '*.exe'
+          destination: 'hora-7394b.firebasestorage.app/Vlinked_Win'
+          parent: false
+
   release:
     needs: build
     runs-on: ubuntu-latest
