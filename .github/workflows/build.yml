@@ -91,7 +91,7 @@ jobs:
       - name: Delete old Windows EXE in Firebase Storage
         if: matrix.platform == 'win'
         run: |
-          gcloud storage rm 'gs://hora-7394b.firebasestorage.app/Vlinked_Win/**' || true
+          gcloud storage rm 'gs://hora-7394b.firebasestorage.app/Vlinked_Windows/**' || true
 
       - name: Upload macOS DMG to Firebase Storage
         if: matrix.platform == 'mac'
@@ -102,14 +102,24 @@ jobs:
           destination: 'hora-7394b.firebasestorage.app/Vlinked_Mac'
           parent: false
 
+      - name: Set Firebase Storage Token for macOS DMG
+        if: matrix.platform == 'mac'
+        run: |
+          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:d5dfca38-6797-4c94-8a15-e506a70ef363" "gs://hora-7394b.firebasestorage.app/Vlinked_Mac/*.dmg"
+
       - name: Upload Windows EXE to Firebase Storage
         if: matrix.platform == 'win'
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: 'electron-agent/dist'
           glob: '*.exe'
-          destination: 'hora-7394b.firebasestorage.app/Vlinked_Win'
+          destination: 'hora-7394b.firebasestorage.app/Vlinked_Windows'
           parent: false
+
+      - name: Set Firebase Storage Token for Windows EXE
+        if: matrix.platform == 'win'
+        run: |
+          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:1a0689a8-0f9a-46ac-b842-522167326ad0" "gs://hora-7394b.firebasestorage.app/Vlinked_Windows/*.exe"
 
   release:
     needs: build
