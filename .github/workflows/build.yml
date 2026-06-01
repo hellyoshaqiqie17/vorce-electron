@@ -90,6 +90,7 @@ jobs:
 
       - name: Delete old Windows EXE in Firebase Storage
         if: matrix.platform == 'win'
+        shell: bash
         run: |
           gcloud storage rm 'gs://hora-7394b.firebasestorage.app/Vlinked_Windows/**' || true
 
@@ -104,6 +105,7 @@ jobs:
 
       - name: Set Firebase Storage Token and Filename for macOS DMG
         if: matrix.platform == 'mac'
+        shell: bash
         run: |
           gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:d5dfca38-6797-4c94-8a15-e506a70ef363" -h "Content-Disposition: attachment; filename=\"Vlinked-1.0.0-arm64.dmg\"" "gs://hora-7394b.firebasestorage.app/Vlinked_Mac/*.dmg"
 
@@ -118,6 +120,7 @@ jobs:
 
       - name: Set Firebase Storage Token and Filename for Windows EXE
         if: matrix.platform == 'win'
+        shell: bash
         run: |
           gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:1a0689a8-0f9a-46ac-b842-522167326ad0" -h "Content-Disposition: attachment; filename=\"Vlinked Setup 1.0.0.exe\"" "gs://hora-7394b.firebasestorage.app/Vlinked_Windows/*.exe"
 
