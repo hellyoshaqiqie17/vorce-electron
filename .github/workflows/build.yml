@@ -102,10 +102,10 @@ jobs:
           destination: 'hora-7394b.firebasestorage.app/Vlinked_Mac'
           parent: false
 
-      - name: Set Firebase Storage Token for macOS DMG
+      - name: Set Firebase Storage Token and Filename for macOS DMG
         if: matrix.platform == 'mac'
         run: |
-          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:d5dfca38-6797-4c94-8a15-e506a70ef363" "gs://hora-7394b.firebasestorage.app/Vlinked_Mac/*.dmg"
+          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:d5dfca38-6797-4c94-8a15-e506a70ef363" -h "Content-Disposition: attachment; filename=\"Vlinked-1.0.0-arm64.dmg\"" "gs://hora-7394b.firebasestorage.app/Vlinked_Mac/*.dmg"
 
       - name: Upload Windows EXE to Firebase Storage
         if: matrix.platform == 'win'
@@ -116,10 +116,10 @@ jobs:
           destination: 'hora-7394b.firebasestorage.app/Vlinked_Windows'
           parent: false
 
-      - name: Set Firebase Storage Token for Windows EXE
+      - name: Set Firebase Storage Token and Filename for Windows EXE
         if: matrix.platform == 'win'
         run: |
-          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:1a0689a8-0f9a-46ac-b842-522167326ad0" "gs://hora-7394b.firebasestorage.app/Vlinked_Windows/*.exe"
+          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:1a0689a8-0f9a-46ac-b842-522167326ad0" -h "Content-Disposition: attachment; filename=\"Vlinked Setup 1.0.0.exe\"" "gs://hora-7394b.firebasestorage.app/Vlinked_Windows/*.exe"
 
   release:
     needs: build
