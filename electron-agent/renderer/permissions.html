@@ -132,6 +132,27 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
+      .btn-bypass {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 12px;
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .12s, color .12s, border-color .12s;
+        margin-top: 10px;
+      }
+      .btn-bypass:hover {
+        background: var(--surface-alt);
+        color: var(--text);
+        border-color: var(--text-tertiary);
+      }
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -192,6 +213,9 @@
               <div>
                 <button type="button" class="btn-start-app" id="btn-check-start">
                   Periksa Izin & Mulai Aplikasi
+                </button>
+                <button type="button" class="btn-bypass" id="btn-bypass-permissions">
+                  Lanjutkan Tanpa Izin
                 </button>
                 
                 <div class="polling-indicator">

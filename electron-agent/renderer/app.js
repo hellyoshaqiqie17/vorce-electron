@@ -1,6 +1,6 @@
 "use strict";
 
-const api = window.vorceAgent;
+const api = window.vlinkedAgent;
 const $ = (sel) => document.querySelector(sel);
 
 const els = {

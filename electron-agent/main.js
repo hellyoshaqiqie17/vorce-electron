@@ -29,6 +29,16 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient("vlinked");
 }
 
+// Handle vlinked:// protocol on macOS (must be registered early, before ready)
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 // Handle protocol URL on Windows (single instance)
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -44,18 +54,28 @@ if (!gotTheLock) {
   });
 }
 
-// Kill any process using a specific port (Windows only)
+// Kill any process using a specific port (Windows & macOS/Linux)
 function killProcessOnPort(port) {
   return new Promise((resolve) => {
-    if (process.platform !== "win32") { resolve(); return; }
-    exec(`for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /PID %a /F`, (err) => {
-      if (err) {
-        log.info(`no process found using port ${port} or could not kill`);
-      } else {
-        log.info(`killed process using port ${port}`);
-      }
-      resolve();
-    });
+    if (process.platform === "win32") {
+      exec(`for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /PID %a /F`, (err) => {
+        if (err) {
+          log.info(`no process found using port ${port} or could not kill`);
+        } else {
+          log.info(`killed process using port ${port}`);
+        }
+        resolve();
+      });
+    } else {
+      exec(`lsof -t -i:${port} | xargs kill -9`, (err) => {
+        if (err) {
+          log.info(`no process found using port ${port} or could not kill`);
+        } else {
+          log.info(`killed process using port ${port} (unix)`);
+        }
+        resolve();
+      });
+    }
   });
 }
 
@@ -757,6 +777,13 @@ function setupIpc() {
     return { ok, accessibility, automation };
   });
 
+  ipcMain.handle("permissions:bypass", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+    }
+    return { ok: true };
+  });
+
   ipcMain.handle("permissions:request-accessibility", () => {
     shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility");
     return { ok: true };
@@ -800,16 +827,6 @@ app.whenReady().then(async () => {
       log.error("Failed to set macOS dock icon", { err: err.message });
     }
   }
-
-  // Handle vlinked:// protocol on macOS
-  app.on("open-url", (event, url) => {
-    event.preventDefault();
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

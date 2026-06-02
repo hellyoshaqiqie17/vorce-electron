@@ -52,6 +52,11 @@ document.addEventListener("DOMContentLoaded", () => {
     window.vlinkedAgent.invoke("permissions:request-automation");
   });
 
+  const btnBypassPermissions = document.getElementById("btn-bypass-permissions");
+  btnBypassPermissions.addEventListener("click", () => {
+    window.vlinkedAgent.invoke("permissions:bypass");
+  });
+
   // Manual trigger
   btnCheckStart.addEventListener("click", async () => {
     btnCheckStart.disabled = true;

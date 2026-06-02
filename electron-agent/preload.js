@@ -25,6 +25,7 @@ const channels = {
     "permissions:check",
     "permissions:request-accessibility",
     "permissions:request-automation",
+    "permissions:bypass",
   ],
   on: [
     "auth:login-success",
