@@ -89,7 +89,7 @@ async function getAuthenticatedBinding() {
     throw new Error("Profil user tidak memiliki companyId.");
   }
 
-  const userId = firstString(profile.userId, profile.uid, profile.id, profile.email, user.email, user.uid) || user.uid;
+  const userId = user.uid;
   const email = firstString(profile.email, profile.userEmail, profile.id, user.email);
   const displayName = firstString(
     profile.displayName,
