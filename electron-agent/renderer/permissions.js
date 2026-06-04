@@ -34,6 +34,26 @@ document.addEventListener("DOMContentLoaded", () => {
         badgeAutomation.textContent = "Belum Aktif";
       }
 
+      // Update Progress Bar
+      let count = 0;
+      if (status.accessibility) count++;
+      if (status.automation) count++;
+
+      const pct = count === 2 ? 100 : count === 1 ? 50 : 0;
+      const progressText = document.getElementById("progress-text");
+      const progressBar = document.getElementById("progress-bar");
+      if (progressText && progressBar) {
+        progressText.textContent = `${count}/2 Aktif (${pct}%)`;
+        progressBar.style.width = `${pct}%`;
+        if (pct === 100) {
+          progressBar.style.backgroundColor = "var(--green)";
+          progressText.style.color = "var(--green)";
+        } else {
+          progressBar.style.backgroundColor = "var(--primary)";
+          progressText.style.color = "var(--primary)";
+        }
+      }
+
       // Note: If both are active, the main process will automatically call
       // mainWindow.loadFile("renderer/index.html"), which will unload this page.
     } catch (err) {
