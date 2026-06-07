@@ -110,6 +110,8 @@ async function getAuthenticatedBinding() {
     // Lakukan validasi jika maxDevice memiliki nilai (ada batasannya)
     // Catatan: Anda mungkin perlu menambahkan pengecekan tambahan jika user ini *sudah* terhitung aktif, 
     // namun sebagai validasi dasar, ini cukup menolak masuk jika kuota penuh.
+    // === VALIDASI DINONAKTIFKAN SEMENTARA ===
+    /*
     if (maxDevice > 0 && totalActiveDevice >= maxDevice) {
       log.warn("Device limit reached", {
         companyId,
@@ -122,6 +124,7 @@ async function getAuthenticatedBinding() {
       limitError.userMessage = "Kapasitas perangkat perusahaan sudah mencapai batas maksimum.";
       throw limitError;
     }
+    */
   }
   // ==========================================
 
