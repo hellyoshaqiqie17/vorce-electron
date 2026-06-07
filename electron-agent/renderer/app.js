@@ -538,6 +538,7 @@ async function refreshSession() {
       setStatus(status.data.running);
       setText(els.deviceIdCompact, status.data.deviceId || "Device registered after start");
     }
+  }
   // Fetch version info
   api.invoke("app:get-version").then(res => {
     if (res.ok && res.data) {
