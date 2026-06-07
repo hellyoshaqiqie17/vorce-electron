@@ -71,6 +71,9 @@ jobs:
             electron-agent/dist/*.zip
             electron-agent/dist/*.AppImage
             electron-agent/dist/*.deb
+            electron-agent/dist/latest.yml
+            electron-agent/dist/latest-mac.yml
+            electron-agent/dist/latest-linux.yml
           if-no-files-found: ignore
 
       - name: Authenticate to Google Cloud
@@ -140,7 +143,15 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.zip
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/latest.yml
+            artifacts/**/latest-mac.yml
+            artifacts/**/latest-linux.yml
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

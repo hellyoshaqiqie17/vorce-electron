@@ -312,6 +312,18 @@ function showInstallDialog(info) {
   }
 }
 
+// Track update state so the renderer can query it
+let updateState = {
+  status: "idle", // idle | checking | available | not-available | downloading | ready | error
+  version: null,
+  progress: null,
+  error: null,
+};
+
+function broadcastUpdateStatus() {
+  broadcast("update:status", { ...updateState, currentVersion: app.getVersion() });
+}
+
 function setupAutoUpdater() {
   // Log update progress using the custom logger
   autoUpdater.logger = log;
@@ -319,10 +331,14 @@ function setupAutoUpdater() {
   // Listen to update events
   autoUpdater.on("checking-for-update", () => {
     log.info("Checking for update...");
+    updateState = { status: "checking", version: null, progress: null, error: null };
+    broadcastUpdateStatus();
   });
 
   autoUpdater.on("update-available", (info) => {
     log.info("Update available:", info);
+    updateState = { status: "available", version: info.version, progress: null, error: null };
+    broadcastUpdateStatus();
     if (Notification.isSupported()) {
       new Notification({
         title: "Vlinked — Pembaruan Tersedia",
@@ -334,18 +350,26 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-not-available", (info) => {
     log.info("Update not available.");
+    updateState = { status: "not-available", version: info.version, progress: null, error: null };
+    broadcastUpdateStatus();
   });
 
   autoUpdater.on("error", (err) => {
     log.error("Error in auto-updater:", err ? err.message : err);
+    updateState = { ...updateState, status: "error", error: err ? err.message : "Unknown error" };
+    broadcastUpdateStatus();
   });
 
   autoUpdater.on("download-progress", (progressObj) => {
     log.info(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
+    updateState = { ...updateState, status: "downloading", progress: Math.round(progressObj.percent) };
+    broadcastUpdateStatus();
   });
 
   autoUpdater.on("update-downloaded", (info) => {
     log.info("Update downloaded:", info);
+    updateState = { status: "ready", version: info.version, progress: 100, error: null };
+    broadcastUpdateStatus();
     if (Notification.isSupported()) {
       const notif = new Notification({
         title: "Vlinked — Pembaruan Siap Dipasang",
@@ -397,7 +421,11 @@ function createWindow() {
     if (app.isPackaged) {
       autoUpdater.checkForUpdatesAndNotify();
     } else {
-      log.info("App is in development mode - skipping auto-update check");
+      log.info("App is in development mode - skipping auto-update check (simulating up-to-date state in UI)");
+      setTimeout(() => {
+        updateState = { status: "not-available", version: app.getVersion(), progress: null, error: null };
+        broadcastUpdateStatus();
+      }, 2000);
     }
   });
 
@@ -876,6 +904,36 @@ function setupIpc() {
   ipcMain.handle("permissions:request-automation", () => {
     shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
     return { ok: true };
+  });
+
+  ipcMain.handle("app:get-version", () => {
+    return {
+      ok: true,
+      data: {
+        currentVersion: app.getVersion(),
+        updateState: { ...updateState },
+      },
+    };
+  });
+
+  ipcMain.handle("app:check-update", async () => {
+    if (app.isPackaged) {
+      try {
+        await autoUpdater.checkForUpdatesAndNotify();
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    } else {
+      // In development mode, simulate checking for 1.5 seconds, then state becomes "not-available" (latest version)
+      updateState = { status: "checking", version: null, progress: null, error: null };
+      broadcastUpdateStatus();
+      setTimeout(() => {
+        updateState = { status: "not-available", version: app.getVersion(), progress: null, error: null };
+        broadcastUpdateStatus();
+      }, 1500);
+      return { ok: true };
+    }
   });
 }
 

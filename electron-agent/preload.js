@@ -26,6 +26,8 @@ const channels = {
     "permissions:request-accessibility",
     "permissions:request-automation",
     "permissions:bypass",
+    "app:get-version",
+    "app:check-update",
   ],
   on: [
     "auth:login-success",
@@ -33,6 +35,7 @@ const channels = {
     "monitor:sample",
     "monitor:status-changed",
     "device:info",
+    "update:status",
   ],
 };
 

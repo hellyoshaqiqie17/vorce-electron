@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #f8f9fb;
   --surface: #ffffff;
   --surface-alt: #f5f6f8;
@@ -277,6 +277,28 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
 .metric-tile.bad strong { color: var(--red); }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════════
+   VERSION INFO
+   ═══════════════════════════════════════════ */
+.version-info { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface-alt); border: 1px solid var(--border-light); transition: all .2s; }
+.version-badge { display: flex; align-items: center; gap: 6px; }
+.version-icon { font-size: 14px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; background: var(--primary-light); color: var(--primary); }
+#version-text { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+.update-status { display: block; font-size: 10px; font-weight: 500; color: var(--text-tertiary); text-align: right; white-space: nowrap; }
+.version-info.up-to-date { border-color: rgba(16,185,129,.2); }
+.version-info.up-to-date .version-icon { background: var(--green-light); color: var(--green); }
+.version-info.up-to-date .update-status { color: var(--green); }
+.version-info.checking .version-icon { background: var(--amber-light); color: var(--amber); animation: spin 1.5s linear infinite; }
+.version-info.checking .update-status { color: var(--amber); }
+.version-info.downloading .version-icon { background: var(--blue-light); color: var(--blue); animation: spin 2s linear infinite; }
+.version-info.downloading .update-status { color: var(--blue); }
+.version-info.ready .version-icon { background: var(--primary-light); color: var(--primary); animation: pulse-icon .8s ease-in-out infinite alternate; }
+.version-info.ready .update-status { color: var(--primary); font-weight: 600; }
+.version-info.error .version-icon { background: var(--red-light); color: var(--red); }
+.version-info.error .update-status { color: var(--red); }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pulse-icon { 0% { transform: scale(1); } 100% { transform: scale(1.15); } }
 
 /* ═══════════════════════════════════════════
    RESPONSIVE

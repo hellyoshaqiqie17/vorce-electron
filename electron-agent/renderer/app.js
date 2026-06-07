@@ -17,12 +17,15 @@ const els = {
   specCpu: $("#spec-cpu"), specRam: $("#spec-ram"), specGpu: $("#spec-gpu"), specSsd: $("#spec-ssd"), specIp: $("#spec-ip"), specMac: $("#spec-mac"),
   donutGpu: $("#donut-gpu"), gpuNow: $("#gpu-now"), gpuDetail: $("#gpu-detail"), gpuStatus: $("#gpu-status"),
   navItems: document.querySelectorAll(".nav-item"), pageDashboard: $("#page-dashboard"), routeContent: $("#route-content"), pageTitle: $("#page-title"), pageEyebrow: $("#page-eyebrow"),
+  versionInfo: $("#version-info"), versionText: $("#version-text"), updateStatusText: $("#update-status-text"),
 };
 
 let running = false;
 let sessionInfo = null;
 let currentRoute = "dashboard";
 let lastSample = null;
+let currentVersion = "—";
+let currentUpdateState = { status: "idle" };
 
 const analytics = {
   samples: [],
@@ -176,6 +179,7 @@ function renderRoute(route) {
     settings: `
       <section class="route-grid">
         ${panel("Agent Settings", "Desktop telemetry controls.", `<div class="settings-list"><label><span>Realtime refresh</span><strong>5s</strong></label><label><span>Firestore write suppression</span><strong>Enabled</strong></label><label><span>Heartbeat</span><strong>Enabled</strong></label><label><span>Window mode</span><strong>Maximized</strong></label></div>`)}
+        ${panel("Versi Aplikasi", "Informasi versi dan status pembaruan otomatis.", `<div class="settings-list"><label><span>Versi saat ini</span><strong id="settings-current-version">v${currentVersion}</strong></label><label><span>Status update</span><strong id="settings-update-status">${updateStatusLabel(currentUpdateState)}</strong></label></div><div style="margin-top:14px;display:flex;gap:8px;"><button id="btn-check-update" class="btn primary" style="font-size:12px;padding:8px 16px;">Periksa Pembaruan</button></div>`)}
         ${panel("Sync Queue", "Offline-first desktop state.", `<div class="empty-state"><strong>No pending queue</strong><span>Local analytics are compressed before upload.</span></div>`)}
       </section>`,
   };
@@ -236,6 +240,26 @@ function switchRoute(route) {
   currentRoute = route || "dashboard";
   els.navItems.forEach((item) => item.classList.toggle("active", item.dataset.route === currentRoute));
   renderRoute(currentRoute);
+
+  // Bind check update button if on settings page
+  if (route === "settings") {
+    const btnCheck = $("#btn-check-update");
+    if (btnCheck) {
+      btnCheck.addEventListener("click", async () => {
+        btnCheck.disabled = true;
+        btnCheck.textContent = "Memeriksa...";
+        const res = await api.invoke("app:check-update");
+        if (!res.ok) {
+          btnCheck.textContent = "Periksa Pembaruan";
+          btnCheck.disabled = false;
+          const statusEl = $("#settings-update-status");
+          if (statusEl) setText(statusEl, res.error || "Gagal memeriksa");
+        }
+        // If successful, status will be updated via update:status event
+        setTimeout(() => { btnCheck.disabled = false; btnCheck.textContent = "Periksa Pembaruan"; }, 5000);
+      });
+    }
+  }
 }
 
 function svgLine(el, values, opts = {}) {
@@ -431,6 +455,60 @@ api.on("monitor:sample", (sample) => {
 });
 api.on("monitor:status-changed", ({ running: r }) => setStatus(r));
 
+// Handle update status broadcasts from main process
+function updateStatusLabel(state) {
+  const s = state || currentUpdateState;
+  switch (s.status) {
+    case "checking": return "Memeriksa pembaruan...";
+    case "available": return `Mengunduh v${s.version}...`;
+    case "downloading": return `Mengunduh ${s.progress || 0}%...`;
+    case "ready": return `v${s.version} siap dipasang`;
+    case "not-available": return "✓ Versi terbaru";
+    case "error": return "Gagal memeriksa";
+    default: return "Memeriksa pembaruan...";
+  }
+}
+function updateVersionUI(data) {
+  if (data.currentVersion) {
+    currentVersion = data.currentVersion;
+    setText(els.versionText, `v${currentVersion}`);
+  }
+  currentUpdateState = data;
+  const versionInfoEl = els.versionInfo;
+  if (versionInfoEl) {
+    versionInfoEl.className = "version-info";
+    switch (data.status) {
+      case "not-available": versionInfoEl.classList.add("up-to-date"); break;
+      case "checking": versionInfoEl.classList.add("checking"); break;
+      case "available":
+      case "downloading": versionInfoEl.classList.add("downloading"); break;
+      case "ready": versionInfoEl.classList.add("ready"); break;
+      case "error": versionInfoEl.classList.add("error"); break;
+    }
+  }
+  const iconEl = versionInfoEl?.querySelector(".version-icon");
+  if (iconEl) {
+    switch (data.status) {
+      case "not-available": iconEl.textContent = "✓"; break;
+      case "checking": iconEl.textContent = "⟲"; break;
+      case "downloading":
+      case "available": iconEl.textContent = "⬇"; break;
+      case "ready": iconEl.textContent = "⬆"; break;
+      case "error": iconEl.textContent = "✕"; break;
+      default: iconEl.textContent = "⟲";
+    }
+  }
+  setText(els.updateStatusText, updateStatusLabel(data));
+  // Also update settings page if visible
+  const settingsVersion = $("#settings-current-version");
+  const settingsStatus = $("#settings-update-status");
+  if (settingsVersion) setText(settingsVersion, `v${currentVersion}`);
+  if (settingsStatus) setText(settingsStatus, updateStatusLabel(data));
+}
+api.on("update:status", (data) => {
+  updateVersionUI(data);
+});
+
 els.navItems.forEach((item) => {
   item.addEventListener("click", () => switchRoute(item.dataset.route));
   item.addEventListener("keydown", (event) => {
@@ -460,7 +538,15 @@ async function refreshSession() {
       setStatus(status.data.running);
       setText(els.deviceIdCompact, status.data.deviceId || "Device registered after start");
     }
-  }
+  // Fetch version info
+  api.invoke("app:get-version").then(res => {
+    if (res.ok && res.data) {
+      updateVersionUI({
+        ...res.data.updateState,
+        currentVersion: res.data.currentVersion,
+      });
+    }
+  }).catch(() => {});
 }
 
 refreshSession().catch(() => showLogin());
