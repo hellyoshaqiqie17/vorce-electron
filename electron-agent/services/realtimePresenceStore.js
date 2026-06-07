@@ -38,8 +38,8 @@ function normalizePresence(payload) {
 
   if (state === "offline") {
     const out = {
-      deviceId: payload.deviceId,
-      companyId: payload.companyId,
+      deviceId: safeKey(payload.deviceId),
+      companyId: safeKey(payload.companyId),
       userId: payload.userId,
       state: "offline",
       lastSeen: serverTimestamp(),
@@ -64,8 +64,8 @@ function normalizePresence(payload) {
   }
 
   const out = {
-    deviceId: payload.deviceId,
-    companyId: payload.companyId,
+    deviceId: safeKey(payload.deviceId),
+    companyId: safeKey(payload.companyId),
     userId: payload.userId,
     state,
     currentApp: payload.currentApp || "Unknown",
@@ -126,8 +126,8 @@ async function markOffline({ deviceId, binding }) {
   const db = firebaseClient.getRealtimeDb();
   const presenceRef = ref(db, statusPath(binding.companyId, deviceId));
   await update(presenceRef, {
-    deviceId,
-    companyId: binding.companyId,
+    deviceId: safeKey(deviceId),
+    companyId: safeKey(binding.companyId),
     userId: binding.userId,
     userName: binding.displayName || "",
     userEmail: binding.email || "",
@@ -159,6 +159,8 @@ async function upsertStatsSummary(payload) {
   const summaryRef = ref(db, `stats/${safeKey(payload.companyId)}/${safeKey(payload.deviceId)}`);
   await set(summaryRef, {
     ...payload,
+    companyId: safeKey(payload.companyId),
+    deviceId: safeKey(payload.deviceId),
     updatedAt: serverTimestamp(),
   });
   log.debug("stats summary updated", { deviceId: payload.deviceId, date: payload.date });
