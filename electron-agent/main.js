@@ -14,7 +14,7 @@ const path = require("path");
 const http = require("http");
 const { exec } = require("child_process");
 const { shell, nativeImage } = require("electron");
-const { app, BrowserWindow, ipcMain, dialog, systemPreferences } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, systemPreferences, Notification } = require("electron");
 const { autoUpdater } = require("electron-updater");
 
 // Disable Edge/Chromium built-in sidebar before app is ready
@@ -285,6 +285,33 @@ function checkAutomation() {
   });
 }
 
+function installUpdate() {
+  Promise.all([
+    monitor.stop(),
+    deviceService.markOffline(),
+    localApiServer.stop()
+  ]).finally(() => {
+    autoUpdater.quitAndInstall();
+  });
+}
+
+function showInstallDialog(info) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Pembaruan Tersedia",
+      message: `Versi baru (${info.version}) telah diunduh. Hubungkan ulang aplikasi untuk memasang pembaruan sekarang?`,
+      buttons: ["Restart Sekarang", "Nanti"],
+      defaultId: 0,
+      cancelId: 1
+    }).then((result) => {
+      if (result.response === 0) {
+        installUpdate();
+      }
+    });
+  }
+}
+
 function setupAutoUpdater() {
   // Log update progress using the custom logger
   autoUpdater.logger = log;
@@ -296,6 +323,13 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-available", (info) => {
     log.info("Update available:", info);
+    if (Notification.isSupported()) {
+      new Notification({
+        title: "Vlinked — Pembaruan Tersedia",
+        body: `Mengunduh versi baru (${info.version}) di latar belakang...`,
+        silent: true
+      }).show();
+    }
   });
 
   autoUpdater.on("update-not-available", (info) => {
@@ -312,29 +346,17 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-downloaded", (info) => {
     log.info("Update downloaded:", info);
-    
-    // Prompt the user to restart and install the update
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      dialog.showMessageBox(mainWindow, {
-        type: "info",
-        title: "Pembaruan Tersedia",
-        message: `Versi baru (${info.version}) telah diunduh. Hubungkan ulang aplikasi untuk memasang pembaruan sekarang?`,
-        buttons: ["Restart Sekarang", "Nanti"],
-        defaultId: 0,
-        cancelId: 1
-      }).then((result) => {
-        if (result.response === 0) {
-          // Perform cleanup before quitting to prevent locks or unclean states
-          Promise.all([
-            monitor.stop(),
-            deviceService.markOffline(),
-            localApiServer.stop()
-          ]).finally(() => {
-            autoUpdater.quitAndInstall();
-          });
-        }
+    if (Notification.isSupported()) {
+      const notif = new Notification({
+        title: "Vlinked — Pembaruan Siap Dipasang",
+        body: `Versi baru (${info.version}) telah selesai diunduh. Klik untuk memasang sekarang.`
+      });
+      notif.show();
+      notif.on("click", () => {
+        installUpdate();
       });
     }
+    showInstallDialog(info);
   });
 }
 
@@ -871,6 +893,10 @@ app.whenReady().then(async () => {
     apiBaseUrl: config.apiBaseUrl,
     intervalMs: config.metricsIntervalMs,
   });
+
+  if (process.platform === "win32") {
+    app.setAppUserModelId("com.vlinked.vlinked");
+  }
 
   await localApiServer.start();
   setupIpc();
