@@ -1,7 +1,29 @@
 {
   "rules": {
+    "companies": {
+      "$companyId": {
+        "online_users": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        },
+        "typing_status": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        }
+      }
+    },
     "status": {
       "$companyId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
         "$deviceId": {
           ".read": "auth != null",
           ".write": "auth != null"
@@ -10,9 +32,11 @@
     },
     "stats": {
       "$companyId": {
-        "$deviceId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$summaryId": {
           ".read": "auth != null",
-          ".write": "auth != null && newData.child('companyId').val() == $companyId && newData.child('deviceId').val() == $deviceId"
+          ".write": "auth != null && newData.child('companyId').val() == $companyId && $summaryId.contains(newData.child('deviceId').val())"
         }
       }
     }
