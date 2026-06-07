@@ -95,15 +95,15 @@ async function getAuthenticatedBinding() {
     const companyData = companySnap.data() || {};
     
     // === TESTING MODE (Ubah MOCK_TESTING jadi true untuk mencoba) ===
-    const MOCK_TESTING = true; // Set ke false kalau sudah selesai testing!
+    const MOCK_TESTING = false; // Set ke false kalau sudah selesai testing!
     
     let maxDevice, totalActiveDevice;
     if (MOCK_TESTING) {
       maxDevice = 1;         // Pura-puranya batasnya 1
       totalActiveDevice = 2; // Pura-puranya yang aktif sudah 2 (Lebih dari batas)
     } else {
-      maxDevice = companyData.max_device ?? companyData.maxDevices ?? 0;
-      totalActiveDevice = companyData.total_active_device ?? companyData.totalActiveDevices ?? 0;
+      maxDevice = companyData.max_devices ?? companyData.max_device ?? companyData.maxDevices ?? 0;
+      totalActiveDevice = companyData.total_active_devices ?? companyData.total_active_device ?? companyData.totalActiveDevices ?? 0;
     }
     // ================================================================
 
