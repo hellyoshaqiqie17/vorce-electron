@@ -89,6 +89,42 @@ async function getAuthenticatedBinding() {
     throw new Error("Profil user tidak memiliki companyId.");
   }
 
+  // ===== VALIDASI DEVICE LIMIT (Cara A) =====
+  const companySnap = await getDoc(doc(db, "companies", companyId));
+  if (companySnap.exists()) {
+    const companyData = companySnap.data() || {};
+    
+    // === TESTING MODE (Ubah MOCK_TESTING jadi true untuk mencoba) ===
+    const MOCK_TESTING = true; // Set ke false kalau sudah selesai testing!
+    
+    let maxDevice, totalActiveDevice;
+    if (MOCK_TESTING) {
+      maxDevice = 1;         // Pura-puranya batasnya 1
+      totalActiveDevice = 2; // Pura-puranya yang aktif sudah 2 (Lebih dari batas)
+    } else {
+      maxDevice = companyData.max_device ?? companyData.maxDevices ?? 0;
+      totalActiveDevice = companyData.total_active_device ?? companyData.totalActiveDevices ?? 0;
+    }
+    // ================================================================
+
+    // Lakukan validasi jika maxDevice memiliki nilai (ada batasannya)
+    // Catatan: Anda mungkin perlu menambahkan pengecekan tambahan jika user ini *sudah* terhitung aktif, 
+    // namun sebagai validasi dasar, ini cukup menolak masuk jika kuota penuh.
+    if (maxDevice > 0 && totalActiveDevice >= maxDevice) {
+      log.warn("Device limit reached", {
+        companyId,
+        maxDevice,
+        totalActiveDevice
+      });
+      
+      const limitError = new Error("ERR_DEVICE_LIMIT_REACHED");
+      limitError.code = "ERR_DEVICE_LIMIT_REACHED";
+      limitError.userMessage = "Kapasitas perangkat perusahaan sudah mencapai batas maksimum.";
+      throw limitError;
+    }
+  }
+  // ==========================================
+
   const userId = user.uid;
   const email = firstString(profile.email, profile.userEmail, profile.id, user.email);
   const displayName = firstString(

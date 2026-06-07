@@ -15,6 +15,7 @@ const http = require("http");
 const { exec } = require("child_process");
 const { shell, nativeImage } = require("electron");
 const { app, BrowserWindow, ipcMain, dialog, systemPreferences } = require("electron");
+const { autoUpdater } = require("electron-updater");
 
 // Disable Edge/Chromium built-in sidebar before app is ready
 app.commandLine.appendSwitch("disable-features", "msEdgeSidebarV2,msEdgeSidebar,EdgeSidebar");
@@ -284,6 +285,69 @@ function checkAutomation() {
   });
 }
 
+function setupAutoUpdater() {
+  // Configure feed URL based on platform as requested
+  const updateUrl = process.platform === "win32"
+    ? "https://vorce.id/vlinked/downloads/windows"
+    : "https://vorce.id/vlinked/downloads/mac";
+
+  autoUpdater.setFeedURL({
+    provider: "generic",
+    url: updateUrl
+  });
+
+  // Log update progress using the custom logger
+  autoUpdater.logger = log;
+
+  // Listen to update events
+  autoUpdater.on("checking-for-update", () => {
+    log.info("Checking for update...");
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    log.info("Update available:", info);
+  });
+
+  autoUpdater.on("update-not-available", (info) => {
+    log.info("Update not available.");
+  });
+
+  autoUpdater.on("error", (err) => {
+    log.error("Error in auto-updater:", err ? err.message : err);
+  });
+
+  autoUpdater.on("download-progress", (progressObj) => {
+    log.info(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    log.info("Update downloaded:", info);
+    
+    // Prompt the user to restart and install the update
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Pembaruan Tersedia",
+        message: `Versi baru (${info.version}) telah diunduh. Hubungkan ulang aplikasi untuk memasang pembaruan sekarang?`,
+        buttons: ["Restart Sekarang", "Nanti"],
+        defaultId: 0,
+        cancelId: 1
+      }).then((result) => {
+        if (result.response === 0) {
+          // Perform cleanup before quitting to prevent locks or unclean states
+          Promise.all([
+            monitor.stop(),
+            deviceService.markOffline(),
+            localApiServer.stop()
+          ]).finally(() => {
+            autoUpdater.quitAndInstall();
+          });
+        }
+      });
+    }
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -315,6 +379,14 @@ function createWindow() {
     mainWindow.maximize();
     mainWindow.webContents.setZoomFactor(0.85);
     mainWindow.show();
+
+    // Setup auto updater and check for updates
+    setupAutoUpdater();
+    if (app.isPackaged) {
+      autoUpdater.checkForUpdatesAndNotify();
+    } else {
+      log.info("App is in development mode - skipping auto-update check");
+    }
   });
 
   let isQuitting = false;
