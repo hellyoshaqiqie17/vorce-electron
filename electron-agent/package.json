@@ -8,12 +8,12 @@
     "start": "electron .",
     "dev": "electron . --enable-logging",
     "rebuild": "electron-rebuild",
-    "build": "electron-builder --win",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:all": "electron-builder --win --mac --linux",
-    "build:dir": "electron-builder --win --dir"
+    "build": "electron-builder --win --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
+    "build:all": "electron-builder --win --mac --linux --publish never",
+    "build:dir": "electron-builder --win --dir --publish never"
   },
   "author": "Vlinked",
   "license": "UNLICENSED",
