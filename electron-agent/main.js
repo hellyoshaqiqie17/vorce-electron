@@ -286,16 +286,6 @@ function checkAutomation() {
 }
 
 function setupAutoUpdater() {
-  // Configure feed URL based on platform as requested
-  const updateUrl = process.platform === "win32"
-    ? "https://vorce.id/vlinked/downloads/windows"
-    : "https://vorce.id/vlinked/downloads/mac";
-
-  autoUpdater.setFeedURL({
-    provider: "generic",
-    url: updateUrl
-  });
-
   // Log update progress using the custom logger
   autoUpdater.logger = log;
 

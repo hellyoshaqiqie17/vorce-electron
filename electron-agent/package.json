@@ -25,8 +25,9 @@
     "appId": "com.vlinked.vlinked",
     "productName": "Vlinked",
     "publish": {
-      "provider": "generic",
-      "url": "https://vorce.id/vlinked/downloads"
+      "provider": "github",
+      "owner": "hellyoshaqiqie17",
+      "repo": "vorce-electron"
     },
     "directories": {
       "output": "dist"
