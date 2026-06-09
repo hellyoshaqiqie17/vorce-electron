@@ -331,6 +331,18 @@ function setupAutoUpdater() {
   // Log update progress using the custom logger
   autoUpdater.logger = log;
 
+  // Set the update feed URL programmatically because building with '--publish never'
+  // prevents electron-builder from generating and packaging app-update.yml.
+  try {
+    autoUpdater.setFeedURL({
+      provider: "github",
+      owner: "hellyoshaqiqie17",
+      repo: "vorce-electron"
+    });
+  } catch (err) {
+    log.error("Failed to set feed URL programmatically:", err.message);
+  }
+
   // Listen to update events
   autoUpdater.on("checking-for-update", () => {
     log.info("Checking for update...");
