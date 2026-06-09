@@ -464,7 +464,7 @@ function updateStatusLabel(state) {
     case "downloading": return `Mengunduh ${s.progress || 0}%...`;
     case "ready": return `v${s.version} siap dipasang`;
     case "not-available": return "✓ Versi terbaru";
-    case "error": return "Gagal memeriksa";
+    case "error": return `Gagal memeriksa: ${s.error || "Unknown error"}`;
     default: return "Memeriksa pembaruan...";
   }
 }
