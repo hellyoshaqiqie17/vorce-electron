@@ -320,6 +320,9 @@ let updateState = {
   error: null,
 };
 
+let downloadNotification = null;
+let lastNotificationProgress = -1;
+
 function broadcastUpdateStatus() {
   broadcast("update:status", { ...updateState, currentVersion: app.getVersion() });
 }
@@ -352,24 +355,58 @@ function setupAutoUpdater() {
     log.info("Update not available.");
     updateState = { status: "not-available", version: info.version, progress: null, error: null };
     broadcastUpdateStatus();
+    if (downloadNotification) {
+      downloadNotification.close();
+      downloadNotification = null;
+    }
+    lastNotificationProgress = -1;
   });
 
   autoUpdater.on("error", (err) => {
     log.error("Error in auto-updater:", err ? err.message : err);
     updateState = { ...updateState, status: "error", error: err ? err.message : "Unknown error" };
     broadcastUpdateStatus();
+    if (downloadNotification) {
+      downloadNotification.close();
+      downloadNotification = null;
+    }
+    lastNotificationProgress = -1;
   });
 
   autoUpdater.on("download-progress", (progressObj) => {
-    log.info(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
-    updateState = { ...updateState, status: "downloading", progress: Math.round(progressObj.percent) };
+    const percent = Math.round(progressObj.percent);
+    log.info(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${percent}%`);
+    updateState = { ...updateState, status: "downloading", progress: percent };
     broadcastUpdateStatus();
+
+    // Throttled notification update to avoid notification spam
+    if (percent - lastNotificationProgress >= 10 || percent === 100) {
+      lastNotificationProgress = percent;
+      if (Notification.isSupported()) {
+        if (downloadNotification) {
+          downloadNotification.close();
+        }
+        downloadNotification = new Notification({
+          title: "Vlinked — Sedang Mengunduh",
+          body: `Sedang mengunduh pembaruan: ${percent}% selesai.`,
+          silent: true
+        });
+        downloadNotification.show();
+      }
+    }
   });
 
   autoUpdater.on("update-downloaded", (info) => {
     log.info("Update downloaded:", info);
     updateState = { status: "ready", version: info.version, progress: 100, error: null };
     broadcastUpdateStatus();
+    
+    if (downloadNotification) {
+      downloadNotification.close();
+      downloadNotification = null;
+    }
+    lastNotificationProgress = -1;
+
     if (Notification.isSupported()) {
       const notif = new Notification({
         title: "Vlinked — Pembaruan Siap Dipasang",
