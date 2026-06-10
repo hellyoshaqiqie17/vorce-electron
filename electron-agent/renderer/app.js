@@ -526,10 +526,15 @@ function handleUpdateModal(data) {
   const btnLater = $("#btn-update-later");
   const btnNow = $("#btn-update-now");
   const btnRestart = $("#btn-update-restart");
+  const btnRestartLater = $("#btn-update-restart-later");
 
   if (!modal.dataset.bound) {
     modal.dataset.bound = "true";
     btnLater.addEventListener("click", () => {
+      updateDeferred = true;
+      modal.hidden = true;
+    });
+    btnRestartLater.addEventListener("click", () => {
       updateDeferred = true;
       modal.hidden = true;
     });
@@ -564,6 +569,7 @@ function handleUpdateModal(data) {
     btnNow.disabled = false;
     btnNow.textContent = "Update Sekarang";
     btnRestart.hidden = true;
+    if (btnRestartLater) btnRestartLater.hidden = true;
 
     setText(titleText, "Pembaruan Tersedia");
     setText(subtitleText, `Versi baru v${data.version} telah dirilis.`);
@@ -576,6 +582,7 @@ function handleUpdateModal(data) {
     btnLater.hidden = true;
     btnNow.hidden = true;
     btnRestart.hidden = true;
+    if (btnRestartLater) btnRestartLater.hidden = true;
 
     const percent = data.progress || 0;
     if (progressFill) progressFill.style.width = `${percent}%`;
@@ -588,6 +595,7 @@ function handleUpdateModal(data) {
     btnLater.hidden = true;
     btnNow.hidden = true;
     btnRestart.hidden = false;
+    if (btnRestartLater) btnRestartLater.hidden = false;
 
     if (progressFill) progressFill.style.width = "100%";
     setText(progressPct, "100%");
@@ -601,12 +609,31 @@ function handleUpdateModal(data) {
       btnNow.disabled = false;
       btnNow.textContent = "Coba Lagi";
       btnRestart.hidden = true;
+      if (btnRestartLater) btnRestartLater.hidden = true;
     }
   } else {
     if (data.status === "not-available" || data.status === "idle") {
       modal.hidden = true;
     }
   }
+}
+
+// Exit Confirmation Modal Handler
+const exitModal = $("#exit-modal");
+const btnExitCancel = $("#btn-exit-cancel");
+const btnExitConfirm = $("#btn-exit-confirm");
+
+if (exitModal && btnExitCancel && btnExitConfirm) {
+  btnExitCancel.addEventListener("click", () => {
+    exitModal.hidden = true;
+  });
+  btnExitConfirm.addEventListener("click", () => {
+    btnExitConfirm.disabled = true;
+    api.invoke("app:confirm-close");
+  });
+  api.on("app:request-close", () => {
+    exitModal.hidden = false;
+  });
 }
 
 api.on("update:status", (data) => {

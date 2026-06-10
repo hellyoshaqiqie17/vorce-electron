@@ -30,6 +30,7 @@ const channels = {
     "app:check-update",
     "app:download-update",
     "app:install-update",
+    "app:confirm-close",
   ],
   on: [
     "auth:login-success",
@@ -38,6 +39,7 @@ const channels = {
     "monitor:status-changed",
     "device:info",
     "update:status",
+    "app:request-close",
   ],
 };
 

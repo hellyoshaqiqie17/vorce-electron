@@ -433,7 +433,6 @@ function setupAutoUpdater() {
         installUpdate();
       });
     }
-    showInstallDialog(info);
   });
 }
 
@@ -487,31 +486,7 @@ function createWindow() {
     if (isQuitting || isAppQuitting) return;
 
     e.preventDefault();
-
-    const choice = dialog.showMessageBoxSync(mainWindow, {
-      type: "question",
-      buttons: ["Batal", "Keluar"],
-      defaultId: 1,
-      cancelId: 0,
-      title: "Verifikasi Keluar",
-      message: "Apakah Anda yakin ingin menutup aplikasi Vlinked?",
-    });
-
-    if (choice === 1) {
-      isQuitting = true;
-      try {
-        log.info("App close confirmed, running cleanup...");
-        // Hide the window immediately so it feels fast, while performing cleanup in background
-        mainWindow.hide();
-        await monitor.stop();
-        await deviceService.markOffline();
-        await localApiServer.stop();
-      } catch (err) {
-        log.error("Error during app close cleanup", { err: err.message });
-      } finally {
-        mainWindow.destroy();
-      }
-    }
+    broadcast("app:request-close");
   });
 
   mainWindow.on("closed", () => {
@@ -1022,6 +997,24 @@ function setupIpc() {
       installUpdate();
     } else {
       log.info("Simulating app install - quitting");
+      app.quit();
+    }
+    return { ok: true };
+  });
+
+  ipcMain.handle("app:confirm-close", async () => {
+    isQuitting = true;
+    try {
+      log.info("App close confirmed, running cleanup...");
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.hide();
+      }
+      await monitor.stop();
+      await deviceService.markOffline();
+      await localApiServer.stop();
+    } catch (err) {
+      log.error("Error during app close cleanup", { err: err.message });
+    } finally {
       app.quit();
     }
     return { ok: true };

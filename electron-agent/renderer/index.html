@@ -150,7 +150,30 @@
         <div class="modal-footer">
           <button id="btn-update-later" class="btn ghost">Nanti</button>
           <button id="btn-update-now" class="btn primary">Update Sekarang</button>
+          <button id="btn-update-restart-later" class="btn ghost" hidden>Nanti Saja</button>
           <button id="btn-update-restart" class="btn primary" hidden>Restart & Pasang</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exit Confirmation Modal -->
+    <div id="exit-modal" class="modal-overlay" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-logo-wrap" style="background: var(--red-light); color: var(--red);">
+            <span style="font-size: 18px; font-weight: bold; line-height: 1;">✕</span>
+          </div>
+          <div>
+            <h3>Verifikasi Keluar</h3>
+            <p>Apakah Anda yakin ingin menutup aplikasi Vlinked?</p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <p>Keluar dari aplikasi akan menghentikan pemantauan latar belakang (background monitoring) dan streaming telemetri perangkat Anda ke dasbor.</p>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-exit-cancel" class="btn ghost">Batal</button>
+          <button id="btn-exit-confirm" class="btn primary" style="background: var(--red); color: white; border: 0;">Keluar</button>
         </div>
       </div>
     </div>
