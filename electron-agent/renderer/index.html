@@ -116,6 +116,45 @@
         </section>
       </section>
     </main>
+
+    <!-- Update Modal -->
+    <div id="update-modal" class="modal-overlay" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-logo-wrap">
+            <img src="../vorcelogo/VLinked.png" alt="Vlinked" class="modal-logo" />
+          </div>
+          <div>
+            <h3 id="update-title-text">Pembaruan Tersedia</h3>
+            <p id="update-subtitle-text">Versi baru Vlinked telah dirilis.</p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div id="update-details">
+            <p>Pembaruan ini membawa peningkatan performa dan perbaikan bug terbaru. Apakah Anda ingin mengunduh dan memperbarui sekarang?</p>
+            <div class="update-version-tag">
+              <span>Versi saat ini: <b id="update-curr-ver">v1.0.6</b></span>
+              <span>Versi baru: <b id="update-new-ver">v1.0.9</b></span>
+            </div>
+          </div>
+          <div id="update-progress-container" hidden>
+            <div class="progress-bar-wrap">
+              <div id="update-progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <div class="progress-meta">
+              <span id="update-progress-status">Mengunduh...</span>
+              <strong id="update-progress-pct">0%</strong>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-update-later" class="btn ghost">Nanti</button>
+          <button id="btn-update-now" class="btn primary">Update Sekarang</button>
+          <button id="btn-update-restart" class="btn primary" hidden>Restart & Pasang</button>
+        </div>
+      </div>
+    </div>
+
     <script src="app.js"></script>
   </body>
 </html>

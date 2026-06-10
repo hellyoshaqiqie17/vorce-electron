@@ -332,6 +332,9 @@ function setupAutoUpdater() {
   // Log update progress using the custom logger
   autoUpdater.logger = log;
 
+  // Disable automatic downloading of updates to prompt the user first
+  autoUpdater.autoDownload = false;
+
   // Set the update feed URL programmatically because building with '--publish never'
   // prevents electron-builder from generating and packaging app-update.yml.
   try {
@@ -975,15 +978,53 @@ function setupIpc() {
         return { ok: false, error: err.message };
       }
     } else {
-      // In development mode, simulate checking for 1.5 seconds, then state becomes "not-available" (latest version)
+      // In development mode, simulate checking for 1.5 seconds, then state becomes "available" (latest version)
       updateState = { status: "checking", version: null, progress: null, error: null };
       broadcastUpdateStatus();
       setTimeout(() => {
-        updateState = { status: "not-available", version: app.getVersion(), progress: null, error: null };
+        updateState = { status: "available", version: "1.0.9", progress: null, error: null };
         broadcastUpdateStatus();
       }, 1500);
       return { ok: true };
     }
+  });
+
+  ipcMain.handle("app:download-update", async () => {
+    if (app.isPackaged) {
+      try {
+        await autoUpdater.downloadUpdate();
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    } else {
+      // In development mode, simulate downloading progress
+      let pct = 0;
+      updateState = { status: "downloading", version: "1.0.9", progress: pct, error: null };
+      broadcastUpdateStatus();
+      const interval = setInterval(() => {
+        pct += 10;
+        if (pct >= 100) {
+          clearInterval(interval);
+          updateState = { status: "ready", version: "1.0.9", progress: 100, error: null };
+          broadcastUpdateStatus();
+        } else {
+          updateState = { status: "downloading", version: "1.0.9", progress: pct, error: null };
+          broadcastUpdateStatus();
+        }
+      }, 300);
+      return { ok: true };
+    }
+  });
+
+  ipcMain.handle("app:install-update", () => {
+    if (app.isPackaged) {
+      installUpdate();
+    } else {
+      log.info("Simulating app install - quitting");
+      app.quit();
+    }
+    return { ok: true };
   });
 }
 

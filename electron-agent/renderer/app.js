@@ -26,6 +26,7 @@ let currentRoute = "dashboard";
 let lastSample = null;
 let currentVersion = "—";
 let currentUpdateState = { status: "idle" };
+let updateDeferred = false;
 
 const analytics = {
   samples: [],
@@ -504,7 +505,110 @@ function updateVersionUI(data) {
   const settingsStatus = $("#settings-update-status");
   if (settingsVersion) setText(settingsVersion, `v${currentVersion}`);
   if (settingsStatus) setText(settingsStatus, updateStatusLabel(data));
+
+  // Handle the modal overlay
+  handleUpdateModal(data);
 }
+
+function handleUpdateModal(data) {
+  const modal = $("#update-modal");
+  if (!modal) return;
+
+  const titleText = $("#update-title-text");
+  const subtitleText = $("#update-subtitle-text");
+  const currVerEl = $("#update-curr-ver");
+  const newVerEl = $("#update-new-ver");
+  const detailsArea = $("#update-details");
+  const progressContainer = $("#update-progress-container");
+  const progressFill = $("#update-progress-fill");
+  const progressStatus = $("#update-progress-status");
+  const progressPct = $("#update-progress-pct");
+  const btnLater = $("#btn-update-later");
+  const btnNow = $("#btn-update-now");
+  const btnRestart = $("#btn-update-restart");
+
+  if (!modal.dataset.bound) {
+    modal.dataset.bound = "true";
+    btnLater.addEventListener("click", () => {
+      updateDeferred = true;
+      modal.hidden = true;
+    });
+    btnNow.addEventListener("click", async () => {
+      btnNow.disabled = true;
+      btnLater.hidden = true;
+      progressContainer.hidden = false;
+      setText(progressStatus, "Memulai unduhan...");
+      const res = await api.invoke("app:download-update");
+      if (!res.ok) {
+        setText(progressStatus, `Gagal: ${res.error || "Unknown error"}`);
+        btnNow.disabled = false;
+        btnLater.hidden = false;
+      }
+    });
+    btnRestart.addEventListener("click", () => {
+      api.invoke("app:install-update");
+    });
+  }
+
+  if (updateDeferred && data.status === "available") {
+    modal.hidden = true;
+    return;
+  }
+
+  if (data.status === "available") {
+    modal.hidden = false;
+    detailsArea.hidden = false;
+    progressContainer.hidden = true;
+    btnLater.hidden = false;
+    btnNow.hidden = false;
+    btnNow.disabled = false;
+    btnNow.textContent = "Update Sekarang";
+    btnRestart.hidden = true;
+
+    setText(titleText, "Pembaruan Tersedia");
+    setText(subtitleText, `Versi baru v${data.version} telah dirilis.`);
+    setText(currVerEl, `v${currentVersion}`);
+    setText(newVerEl, `v${data.version}`);
+  } else if (data.status === "downloading") {
+    modal.hidden = false;
+    detailsArea.hidden = false;
+    progressContainer.hidden = false;
+    btnLater.hidden = true;
+    btnNow.hidden = true;
+    btnRestart.hidden = true;
+
+    const percent = data.progress || 0;
+    if (progressFill) progressFill.style.width = `${percent}%`;
+    setText(progressPct, `${percent}%`);
+    setText(progressStatus, "Mengunduh file pembaruan...");
+  } else if (data.status === "ready") {
+    modal.hidden = false;
+    detailsArea.hidden = false;
+    progressContainer.hidden = false;
+    btnLater.hidden = true;
+    btnNow.hidden = true;
+    btnRestart.hidden = false;
+
+    if (progressFill) progressFill.style.width = "100%";
+    setText(progressPct, "100%");
+    setText(progressStatus, "Unduhan selesai! Siap dipasang.");
+  } else if (data.status === "error") {
+    if (!modal.hidden) {
+      progressContainer.hidden = false;
+      setText(progressStatus, `Error: ${data.error || "Gagal mengunduh"}`);
+      btnLater.hidden = false;
+      btnNow.hidden = false;
+      btnNow.disabled = false;
+      btnNow.textContent = "Coba Lagi";
+      btnRestart.hidden = true;
+    }
+  } else {
+    if (data.status === "not-available" || data.status === "idle") {
+      modal.hidden = true;
+    }
+  }
+}
+
 api.on("update:status", (data) => {
   updateVersionUI(data);
 });

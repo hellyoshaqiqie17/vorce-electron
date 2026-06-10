@@ -28,6 +28,8 @@ const channels = {
     "permissions:bypass",
     "app:get-version",
     "app:check-update",
+    "app:download-update",
+    "app:install-update",
   ],
   on: [
     "auth:login-success",
