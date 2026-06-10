@@ -120,7 +120,7 @@ jobs:
         if: matrix.platform == 'win'
         shell: bash
         run: |
-          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:1a0689a8-0f9a-46ac-b842-522167326ad0" -h "Content-Disposition: attachment; filename=\"Vlinked Setup 1.0.0.exe\"" "gs://hora-7394b.firebasestorage.app/Vlinked_Windows/*.exe"
+          gsutil setmeta -h "x-goog-meta-firebaseStorageDownloadTokens:1a0689a8-0f9a-46ac-b842-522167326ad0" -h "Content-Disposition: attachment; filename=\"Vlinked-Setup-1.0.0.exe\"" "gs://hora-7394b.firebasestorage.app/Vlinked_Windows/*.exe"
 
   release:
     needs: build

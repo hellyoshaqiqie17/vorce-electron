@@ -1,6 +1,6 @@
 {
   "name": "vlinked-electron-agent",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Vlinked desktop monitoring agent. Authenticates with Firebase, exposes a local monitoring API, and writes desktop device/metrics data to Firestore.",
   "main": "main.js",
   "private": true,
@@ -42,7 +42,8 @@
           ]
         }
       ],
-      "icon": "vorcelogo/VLinked.png"
+      "icon": "vorcelogo/VLinked.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [
