@@ -91,6 +91,7 @@ const log = make("main");
 
 let mainWindow = null;
 let isAppQuitting = false;
+let isQuitting = false;
 let authResolved = false;
 let authServer = null;
 let authServerPort = 0;
@@ -481,7 +482,6 @@ function createWindow() {
     }
   });
 
-  let isQuitting = false;
   mainWindow.on("close", async (e) => {
     if (isQuitting || isAppQuitting) return;
 

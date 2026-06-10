@@ -247,6 +247,7 @@ function switchRoute(route) {
     const btnCheck = $("#btn-check-update");
     if (btnCheck) {
       btnCheck.addEventListener("click", async () => {
+        updateDeferred = false;
         btnCheck.disabled = true;
         btnCheck.textContent = "Memeriksa...";
         const res = await api.invoke("app:check-update");
@@ -461,7 +462,7 @@ function updateStatusLabel(state) {
   const s = state || currentUpdateState;
   switch (s.status) {
     case "checking": return "Memeriksa pembaruan...";
-    case "available": return `Mengunduh v${s.version}...`;
+    case "available": return s.version ? `v${s.version} tersedia` : "Pembaruan tersedia";
     case "downloading": return `Mengunduh ${s.progress || 0}%...`;
     case "ready": return `v${s.version} siap dipasang`;
     case "not-available": return "✓ Versi terbaru";
