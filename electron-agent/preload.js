@@ -31,6 +31,7 @@ const channels = {
     "app:download-update",
     "app:install-update",
     "app:confirm-close",
+    "titlebar:dim",
   ],
   on: [
     "auth:login-success",

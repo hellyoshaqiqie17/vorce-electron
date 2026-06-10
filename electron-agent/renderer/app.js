@@ -510,6 +510,17 @@ function updateVersionUI(data) {
   handleUpdateModal(data);
 }
 
+function toggleModal(modalSelector, visible) {
+  const modal = $(modalSelector);
+  if (!modal) return;
+  modal.hidden = !visible;
+
+  setTimeout(() => {
+    const activeOverlays = document.querySelectorAll(".modal-overlay:not([hidden])").length;
+    api.invoke("titlebar:dim", activeOverlays > 0);
+  }, 50);
+}
+
 function handleUpdateModal(data) {
   const modal = $("#update-modal");
   if (!modal) return;
@@ -532,11 +543,11 @@ function handleUpdateModal(data) {
     modal.dataset.bound = "true";
     btnLater.addEventListener("click", () => {
       updateDeferred = true;
-      modal.hidden = true;
+      toggleModal("#update-modal", false);
     });
     btnRestartLater.addEventListener("click", () => {
       updateDeferred = true;
-      modal.hidden = true;
+      toggleModal("#update-modal", false);
     });
     btnNow.addEventListener("click", async () => {
       btnNow.disabled = true;
@@ -556,12 +567,12 @@ function handleUpdateModal(data) {
   }
 
   if (updateDeferred && data.status === "available") {
-    modal.hidden = true;
+    toggleModal("#update-modal", false);
     return;
   }
 
   if (data.status === "available") {
-    modal.hidden = false;
+    toggleModal("#update-modal", true);
     detailsArea.hidden = false;
     progressContainer.hidden = true;
     btnLater.hidden = false;
@@ -576,7 +587,7 @@ function handleUpdateModal(data) {
     setText(currVerEl, `v${currentVersion}`);
     setText(newVerEl, `v${data.version}`);
   } else if (data.status === "downloading") {
-    modal.hidden = false;
+    toggleModal("#update-modal", true);
     detailsArea.hidden = false;
     progressContainer.hidden = false;
     btnLater.hidden = true;
@@ -589,7 +600,7 @@ function handleUpdateModal(data) {
     setText(progressPct, `${percent}%`);
     setText(progressStatus, "Mengunduh file pembaruan...");
   } else if (data.status === "ready") {
-    modal.hidden = false;
+    toggleModal("#update-modal", true);
     detailsArea.hidden = false;
     progressContainer.hidden = false;
     btnLater.hidden = true;
@@ -613,7 +624,7 @@ function handleUpdateModal(data) {
     }
   } else {
     if (data.status === "not-available" || data.status === "idle") {
-      modal.hidden = true;
+      toggleModal("#update-modal", false);
     }
   }
 }
@@ -625,14 +636,14 @@ const btnExitConfirm = $("#btn-exit-confirm");
 
 if (exitModal && btnExitCancel && btnExitConfirm) {
   btnExitCancel.addEventListener("click", () => {
-    exitModal.hidden = true;
+    toggleModal("#exit-modal", false);
   });
   btnExitConfirm.addEventListener("click", () => {
     btnExitConfirm.disabled = true;
     api.invoke("app:confirm-close");
   });
   api.on("app:request-close", () => {
-    exitModal.hidden = false;
+    toggleModal("#exit-modal", true);
   });
 }
 

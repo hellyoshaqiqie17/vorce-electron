@@ -1019,6 +1019,27 @@ function setupIpc() {
     }
     return { ok: true };
   });
+
+  ipcMain.handle("titlebar:dim", (event, dim) => {
+    if (mainWindow && !mainWindow.isDestroyed() && process.platform === "win32") {
+      try {
+        if (dim) {
+          mainWindow.setTitleBarOverlay({
+            color: "#a1a5ab",
+            symbolColor: "#ffffff"
+          });
+        } else {
+          mainWindow.setTitleBarOverlay({
+            color: "#ffffff",
+            symbolColor: "#1a1a1a"
+          });
+        }
+      } catch (err) {
+        log.error("Failed to set title bar overlay color dynamically", { err: err.message });
+      }
+    }
+    return { ok: true };
+  });
 }
 
 // Cleanup on app quit
