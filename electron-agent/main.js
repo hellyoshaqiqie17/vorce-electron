@@ -90,6 +90,7 @@ const { make } = require("./utils/logger");
 const log = make("main");
 
 let mainWindow = null;
+let isAppQuitting = false;
 let authResolved = false;
 let authServer = null;
 let authServerPort = 0;
@@ -480,7 +481,7 @@ function createWindow() {
 
   let isQuitting = false;
   mainWindow.on("close", async (e) => {
-    if (isQuitting) return;
+    if (isQuitting || isAppQuitting) return;
 
     e.preventDefault();
 
@@ -988,6 +989,7 @@ function setupIpc() {
 
 // Cleanup on app quit
 app.on("before-quit", async () => {
+  isAppQuitting = true;
   if (authServer) {
     log.info("closing auth server");
     authServer.close();
