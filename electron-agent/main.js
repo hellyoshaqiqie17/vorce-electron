@@ -1032,7 +1032,7 @@ function setupIpc() {
             });
           } else {
             mainWindow.setTitleBarOverlay({
-              color: "rgba(0, 0, 0, 0)",
+              color: "#f8f9fb",
               symbolColor: "#8a8a8a"
             });
           }
@@ -1044,7 +1044,7 @@ function setupIpc() {
             });
           } else {
             mainWindow.setTitleBarOverlay({
-              color: "rgba(0, 0, 0, 0)",
+              color: "#f8f9fb",
               symbolColor: "#1a1a1a"
             });
           }
@@ -1067,7 +1067,7 @@ function setupIpc() {
           });
         } else {
           mainWindow.setTitleBarOverlay({
-            color: "rgba(0, 0, 0, 0)",
+            color: "#f8f9fb",
             symbolColor: "#1a1a1a"
           });
         }
