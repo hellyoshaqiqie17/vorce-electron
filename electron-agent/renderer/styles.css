@@ -90,9 +90,28 @@ button { cursor: pointer; }
 .support-info { font-size: 13px; font-weight: 600; color: #1a1a1a; line-height: 1.6; }
 
 /* Right side login form */
-.login-right { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px; background: #5A30FF; color: #ffffff; position: relative; overflow: hidden; }
-.login-right::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%); pointer-events: none; }
-.login-right::after { content: ""; position: absolute; bottom: -40%; left: -20%; width: 70%; height: 100%; border-radius: 50%; background: rgba(255, 255, 255, 0.04); pointer-events: none; }
+.login-right { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  padding: 56px; 
+  background: linear-gradient(135deg, #5A30FF 0%, #29148F 50%, #150854 100%); 
+  color: #ffffff; 
+  position: relative; 
+  overflow: hidden; 
+}
+.login-right::before { 
+  content: ""; 
+  position: absolute; 
+  inset: 0; 
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px); 
+  background-size: 24px 24px; 
+  background-position: center; 
+  opacity: 0.8; 
+  pointer-events: none; 
+  z-index: 1; 
+}
 .login-form-area { width: 100%; max-width: 340px; position: relative; z-index: 1; }
 .login-title { font-size: 26px; font-weight: 700; color: #ffffff; margin: 0 0 8px; letter-spacing: -.02em; text-align: center; }
 .login-subtitle { color: rgba(255, 255, 255, 0.75); font-size: 14px; margin: 0 0 36px; text-align: center; }
@@ -501,4 +520,129 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
 @keyframes scaleInModal {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════
+   BACKGROUND TEXTURES & FLOATING MOCKUPS
+   ═══════════════════════════════════════════ */
+.bg-texture-top-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 280px;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-texture-top-right {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-texture-bottom-right {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 280px;
+  height: 280px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.floating-card {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  padding: 12px 16px;
+  pointer-events: none;
+  z-index: 2;
+  animation: float-slow 6s ease-in-out infinite alternate;
+}
+.chart-card {
+  left: 32px;
+  bottom: 120px;
+  width: 160px;
+}
+.rewards-card {
+  right: 32px;
+  top: 140px;
+  width: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.fc-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
+}
+.fc-chart {
+  width: 100%;
+  height: 36px;
+  margin-top: 6px;
+}
+.fc-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.fc-avatar {
+  font-size: 20px;
+}
+.fc-points {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.floating-circle {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  z-index: 2;
+  animation: float-slower 8s ease-in-out infinite alternate;
+}
+.twitter-circle {
+  left: 64px;
+  top: 120px;
+}
+.instagram-circle {
+  left: 200px;
+  top: 60px;
+}
+.messenger-circle {
+  right: 80px;
+  bottom: 140px;
+}
+
+@keyframes float-slow {
+  0% { transform: translateY(0px) rotate(0deg); }
+  100% { transform: translateY(-10px) rotate(1.5deg); }
+}
+@keyframes float-slower {
+  0% { transform: translateY(0px) scale(1); }
+  100% { transform: translateY(-12px) scale(1.05); }
+}
+
+@media (max-width: 1240px) {
+  .floating-card, .floating-circle {
+    display: none !important;
+  }
 }
