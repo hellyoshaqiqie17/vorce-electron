@@ -569,20 +569,21 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
   bottom: 120px;
   width: 160px;
 }
-.rewards-card {
+.device-card {
   right: 32px;
   top: 140px;
-  width: 130px;
+  width: 145px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 4px;
 }
 .fc-value {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
   color: #1a1a1a;
   letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 .fc-chart {
   width: 100%;
@@ -596,13 +597,32 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
-.fc-avatar {
-  font-size: 20px;
+.fc-trend {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
-.fc-points {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--primary);
+.fc-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--green);
+  margin-top: 4px;
+}
+.fc-pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse-dot 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  100% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
 }
 
 .floating-circle {
