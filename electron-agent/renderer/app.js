@@ -93,12 +93,17 @@ function healthScore(cpu, ram, idle) {
 }
 function pushLimited(arr, value, max = 48) { arr.push(value); while (arr.length > max) arr.shift(); }
 
-function showLogin() { els.viewLogin.hidden = false; els.viewDashboard.hidden = true; }
+function showLogin() {
+  els.viewLogin.hidden = false;
+  els.viewDashboard.hidden = true;
+  api.invoke("titlebar:set-theme", "login").catch(() => {});
+}
 function showDashboard(session) {
   sessionInfo = session || sessionInfo;
   els.viewLogin.hidden = true; els.viewDashboard.hidden = false;
   setText(els.sessionEmail, session?.email ? `Masuk sebagai ${session.email}` : "Secure session active");
   setText(els.companyName, session?.companyName || session?.companyId || "Vlinked");
+  api.invoke("titlebar:set-theme", "dashboard").catch(() => {});
 }
 function setStatus(isRunning) {
   running = Boolean(isRunning);
@@ -628,6 +633,28 @@ function handleUpdateModal(data) {
       toggleModal("#update-modal", false);
     }
   }
+}
+
+// Login Page Tab Switching Handler
+const tabDeskripsi = $("#tab-deskripsi");
+const tabPenggunaan = $("#tab-penggunaan");
+const paneDeskripsi = $("#pane-deskripsi");
+const panePenggunaan = $("#pane-penggunaan");
+
+if (tabDeskripsi && tabPenggunaan && paneDeskripsi && panePenggunaan) {
+  tabDeskripsi.addEventListener("click", () => {
+    tabDeskripsi.classList.add("active");
+    tabPenggunaan.classList.remove("active");
+    paneDeskripsi.style.display = "block";
+    panePenggunaan.style.display = "none";
+  });
+
+  tabPenggunaan.addEventListener("click", () => {
+    tabPenggunaan.classList.add("active");
+    tabDeskripsi.classList.remove("active");
+    panePenggunaan.style.display = "block";
+    paneDeskripsi.style.display = "none";
+  });
 }
 
 // Exit Confirmation Modal Handler

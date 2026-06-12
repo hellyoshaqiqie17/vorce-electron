@@ -12,17 +12,133 @@
         <div class="login-container">
           <div class="login-left">
             <div class="login-left-content">
-              <img src="../vorcelogo/VLinked.png" alt="Vlinked" class="login-logo-img" />
-              <p class="login-eyebrow">Monitor with ease</p>
-              <h1 class="login-headline">Speed up your work<br>with <span class="text-gradient">Vlinked</span></h1>
-              <p class="login-tagline">Real-time device intelligence and workforce analytics platform.</p>
-            </div>
-            <div class="login-partners">
-              <p>Trusted technology</p>
-              <div class="partner-logos">
-                <span>🔥 Firebase</span>
-                <span>☁️ Google Cloud</span>
-                <span>🔒 OAuth 2.0</span>
+              <!-- VLinked Brand Header -->
+              <div class="vlinked-brand">
+                <svg width="56" height="56" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="vlinked-logo-svg">
+                  <rect width="60" height="60" rx="16" fill="#5A30FF"/>
+                  <rect x="22" y="18" width="6" height="6" rx="1.5" fill="white"/>
+                  <rect x="32" y="18" width="6" height="6" rx="1.5" fill="white"/>
+                  <rect x="12" y="28" width="6" height="6" rx="1.5" fill="white"/>
+                  <rect x="22" y="28" width="6" height="6" rx="1.5" fill="white"/>
+                  <rect x="32" y="28" width="6" height="6" rx="1.5" fill="white"/>
+                </svg>
+                <div class="brand-text-row">
+                  <span class="vlinked-name">VLinked</span>
+                  <span class="vlinked-by">by</span>
+                  <img src="../vorcelogo/VLinked.png" alt="Vorce Logo" class="vorce-inline-logo" />
+                  <span class="vorce-name">WORCE</span>
+                </div>
+              </div>
+
+              <!-- Tabs segment toggle -->
+              <div class="vlinked-tabs">
+                <button type="button" class="vlinked-tab-btn active" id="tab-deskripsi">Deskripsi</button>
+                <button type="button" class="vlinked-tab-btn" id="tab-penggunaan">Penggunaan</button>
+              </div>
+
+              <!-- Tab content: Deskripsi -->
+              <div class="tab-pane active" id="pane-deskripsi">
+                <p class="tab-desc">
+                  Platform manajemen perangkat IT (UEM/MDM) yang digunakan perusahaan untuk mengelola, mengontrol, dan mengamankan berbagai device seperti laptop, smartphone, dan tablet dari satu dashboard terpusat.
+                </p>
+                
+                <div class="features-card">
+                  <div class="features-title">Fitur lengkap untuk kebutuhan perangkat perusahaan anda.</div>
+                  <div class="feature-list">
+                    <div class="feature-item">
+                      <div class="feat-icon green-bg">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                          <polyline points="16 7 22 7 22 13"></polyline>
+                        </svg>
+                      </div>
+                      <span>Laporan aktivitas secara real-time</span>
+                    </div>
+                    <div class="feature-item">
+                      <div class="feat-icon green-bg">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                      </div>
+                      <span>Lacak lokasi perangkat dengan akurat</span>
+                    </div>
+                    <div class="feature-item">
+                      <div class="feat-icon green-bg">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                      </div>
+                      <span>Melindungi data & perangkat</span>
+                    </div>
+                    <div class="feature-item">
+                      <div class="feat-icon green-bg">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                      </div>
+                      <span>Cek status perangkat secara instan</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="download-section">
+                  <p class="download-text">
+                    VLinked desktop tersedia untuk sistem operasi pilihan anda. <a href="https://vorce.id/vlinked" class="link-purple" target="_blank">Kunjungi situs untuk mengunduh.</a>
+                  </p>
+                  <div class="os-grid">
+                    <div class="os-item">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="os-icon">
+                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.68-.83 1.14-1.99 1.03-3.02-1.01.05-2.22.68-2.95 1.54-.64.75-1.16 1.94-1.02 2.98 1.12.09 2.27-.66 2.94-1.5"/>
+                      </svg>
+                      <span class="os-name">macOS</span>
+                    </div>
+                    <div class="os-item">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="os-icon">
+                        <path d="M3 5.557l7.357-1.002.003 7.098-7.36.012v-6.108zm8.441-1.173l9.559-1.384v8.654l-9.559.034v-7.304zm0 8.441l9.559.043v8.72l-9.559-1.378v-7.385zm-8.441.047l7.36.02v6.233l-7.36-.997v-5.256z"/>
+                      </svg>
+                      <span class="os-name">Windows</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab content: Penggunaan -->
+              <div class="tab-pane" id="pane-penggunaan" style="display: none;">
+                <div class="setup-title">Setup cepat 5 menit untuk laptop & PC/Desktop anda.</div>
+                
+                <div class="steps-list">
+                  <div class="step-item">
+                    <span class="step-number">①</span>
+                    <span class="step-text">Kunjungi situs VLinked untuk mengunduh</span>
+                  </div>
+                  <div class="step-item">
+                    <span class="step-number">②</span>
+                    <span class="step-text">Sesuaikan unduhan dengan jenis perangkat anda</span>
+                  </div>
+                  <div class="step-item">
+                    <span class="step-number">③</span>
+                    <span class="step-text">Ikuti dan lakukan instalasi sesuai petunjuk yang tersedia</span>
+                  </div>
+                  <div class="step-item">
+                    <span class="step-number">④</span>
+                    <span class="step-text">Beritahu admin untuk segera menyalakan fitur melalui fitur IT → VLinked → ON</span>
+                  </div>
+                  <div class="step-item">
+                    <span class="step-number">⑤</span>
+                    <span class="step-text">Silakan masuk menggunakan email pengguna yang telah terverifikasi Vorce</span>
+                  </div>
+                  <div class="step-item">
+                    <span class="step-number">⑥</span>
+                    <span class="step-text">Segera laporkan apabila terjadi kesalahan teknis pada akun VLinked anda ke layanan pelanggan kami. Kesalahan teknis akan diselesaikan dalam kurun waktu 48 jam kerja. Terima kasih.</span>
+                  </div>
+                </div>
+
+                <div class="support-info">
+                  <p>
+                    Layanan pelanggan kami siap untuk membantu anda apabila terjadi kesalahan teknis. <a href="https://wa.me/6285835644607?text=Halo%20Vorce,%20saya%20butuh%20bantuan%20teknis%20VLinked" class="link-purple" target="_blank">Hubungi kami</a> apabila membutuhkan bantuan dari teknisi kami. Terima kasih.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -41,11 +157,11 @@
                     <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
                     <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
                   </svg>
-                  <span>Login with Google</span>
+                  <span class="btn-label">Login with Google</span>
                 </button>
                 <button id="btn-apple-login" class="btn-oauth">
                   <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
-                    <path d="M14.94 9.88c-.02-2.08 1.7-3.08 1.78-3.13-0.97-1.42-2.48-1.61-3.01-1.63-1.28-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.07-1.45 2.52-.37 6.27 1.05 8.32.69 1 1.51 2.13 2.6 2.09 1.04-.04 1.43-.67 2.69-.67 1.26 0 1.61.67 2.71.65 1.12-.02 1.83-.99 2.52-2.01.79-1.15 1.12-2.27 1.14-2.33-.02-.01-2.18-.84-2.2-3.32zM12.88 3.74c.57-.7.96-1.66.85-2.62-.82.03-1.82.55-2.41 1.24-.53.61-.99 1.59-.87 2.53.92.07 1.86-.47 2.43-1.15z" fill="#000000"/>
+                    <path d="M14.94 9.88c-.02-2.08 1.7-3.08 1.78-3.13-0.97-1.42-2.48-1.61-3.01-1.63-1.28-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.07-1.45 2.52-.37 6.27 1.05 8.32.69 1 1.51 2.13 2.6 2.09 1.04-.04 1.43-.67 2.69-.67 1.26 0 1.61.67 2.71.65 1.12-.02 1.83-.99 2.52-2.01.79-1.15 1.12-2.27 1.14-2.33-.02-.01-2.18-.84-2.2-3.32zM12.88 3.74c.57-.7.96-1.66.85-2.62-.82.03-1.82.55-2.41 1.24-.53.61-.99 1.59-.87 2.53.92.07 1.86-.47 2.43-1.15z" fill="currentColor"/>
                   </svg>
                   <span>Login with Apple</span>
                 </button>

@@ -42,17 +42,77 @@ async function fetchWifiSsid() {
   if (now - lastWifiFetchTime < WIFI_CACHE_TTL) {
     return cachedWifi;
   }
+
+  // Method 1: systeminformation (works if Location Services is enabled)
   try {
     const connections = await si.wifiConnections();
     if (connections && connections.length > 0) {
       const active = connections.find(c => c.ssid);
-      cachedWifi = active ? active.ssid : "";
-    } else {
-      cachedWifi = "";
+      if (active && active.ssid) {
+        cachedWifi = active.ssid;
+        lastWifiFetchTime = now;
+        return cachedWifi;
+      }
     }
   } catch (err) {
-    cachedWifi = "";
+    // Fall through to platform-specific fallback
   }
+
+  // Method 2: macOS native airport CLI (does NOT need Location Services permission)
+  if (os.platform() === "darwin") {
+    try {
+      const { execSync } = require("child_process");
+      const output = execSync(
+        "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I",
+        { timeout: 3000, encoding: "utf8" }
+      );
+      const match = output.match(/\s+SSID:\s+(.+)/);
+      if (match && match[1].trim()) {
+        cachedWifi = match[1].trim();
+        lastWifiFetchTime = now;
+        return cachedWifi;
+      }
+    } catch (_) {
+      // airport not available or failed
+    }
+
+    // Method 3: macOS networksetup CLI fallback (works on Sonoma/Sequoia without Location Services)
+    try {
+      const { execSync } = require("child_process");
+      // Find wifi interface (default to en0)
+      let wifiIface = "en0";
+      try {
+        const portsOut = execSync("networksetup -listallhardwareports", { timeout: 2000, encoding: "utf8" });
+        const lines = portsOut.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].includes("Wi-Fi") || lines[i].includes("AirPort")) {
+            const nextLine = lines[i + 1];
+            if (nextLine && nextLine.includes("Device:")) {
+              const devMatch = nextLine.match(/Device:\s+(\S+)/);
+              if (devMatch) {
+                wifiIface = devMatch[1];
+                break;
+              }
+            }
+          }
+        }
+      } catch (_) {
+        // use default en0
+      }
+
+      const output = execSync(`networksetup -getairportnetwork ${wifiIface}`, { timeout: 3000, encoding: "utf8" });
+      const match = output.match(/Current Wi-Fi Network:\s+(.+)/);
+      if (match && match[1].trim()) {
+        cachedWifi = match[1].trim();
+        lastWifiFetchTime = now;
+        return cachedWifi;
+      }
+    } catch (_) {
+      // networksetup failed
+    }
+  }
+
+  cachedWifi = "";
   lastWifiFetchTime = now;
   return cachedWifi;
 }

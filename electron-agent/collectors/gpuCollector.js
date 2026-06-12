@@ -35,22 +35,35 @@ async function collectGpuUsage() {
       return 0;
     }
   } else if (platform === "darwin") {
+    // Method 1: Query Apple Silicon AGX / AMD / Intel GPU accelerators via IOKit classes
     try {
       let stdout = await execAsync("ioreg -r -c AGXAccelerator");
       if (!stdout) {
         stdout = await execAsync("ioreg -r -c IOAccelerator");
       }
-      const match = stdout.match(/"Device Utilization %"\s*=\s*(\d+)/);
-      if (match) {
-        return parseInt(match[1], 10);
+      if (!stdout) {
+        stdout = await execAsync("ioreg -r -c IOGPU");
       }
-      return 0;
+
+      if (stdout) {
+        // "Device Utilization %" = N (most common on Apple Silicon and discrete GPUs)
+        const match = stdout.match(/"Device Utilization %"\s*=\s*(\d+)/);
+        if (match) {
+          return parseInt(match[1], 10);
+        }
+        // Fallback keys for utilization or busy percentage
+        const appleMatch = stdout.match(/"(?:gpu-utilization|Busy\s*%)"\s*=\s*(\d+)/i);
+        if (appleMatch) {
+          return parseInt(appleMatch[1], 10);
+        }
+      }
     } catch (err) {
-      return 0;
+      // ignore and return 0
     }
+
+    return 0;
   }
   return 0;
 }
 
 module.exports = { collectGpu, collectGpuUsage };
-

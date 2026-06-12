@@ -90,6 +90,7 @@ const { make } = require("./utils/logger");
 const log = make("main");
 
 let mainWindow = null;
+let currentTheme = "login";
 let isAppQuitting = false;
 let isQuitting = false;
 let authResolved = false;
@@ -449,8 +450,8 @@ function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     titleBarOverlay: {
-      color: "#ffffff",
-      symbolColor: "#1a1a1a",
+      color: "#5A30FF",
+      symbolColor: "#ffffff",
       height: 36,
     },
     autoHideMenuBar: true,
@@ -1021,7 +1022,7 @@ function setupIpc() {
   });
 
   ipcMain.handle("titlebar:dim", (event, dim) => {
-    if (mainWindow && !mainWindow.isDestroyed() && process.platform === "win32") {
+    if (mainWindow && !mainWindow.isDestroyed() && process.platform === "win32" && mainWindow.setTitleBarOverlay) {
       try {
         if (dim) {
           mainWindow.setTitleBarOverlay({
@@ -1029,13 +1030,42 @@ function setupIpc() {
             symbolColor: "#ffffff"
           });
         } else {
+          if (currentTheme === "login") {
+            mainWindow.setTitleBarOverlay({
+              color: "#5A30FF",
+              symbolColor: "#ffffff"
+            });
+          } else {
+            mainWindow.setTitleBarOverlay({
+              color: "#f8f9fb",
+              symbolColor: "#1a1a1a"
+            });
+          }
+        }
+      } catch (err) {
+        log.error("Failed to set title bar overlay color dynamically", { err: err.message });
+      }
+    }
+    return { ok: true };
+  });
+
+  ipcMain.handle("titlebar:set-theme", (event, theme) => {
+    currentTheme = theme;
+    if (mainWindow && !mainWindow.isDestroyed() && process.platform === "win32" && mainWindow.setTitleBarOverlay) {
+      try {
+        if (theme === "login") {
           mainWindow.setTitleBarOverlay({
-            color: "#ffffff",
+            color: "#5A30FF",
+            symbolColor: "#ffffff"
+          });
+        } else {
+          mainWindow.setTitleBarOverlay({
+            color: "#f8f9fb",
             symbolColor: "#1a1a1a"
           });
         }
       } catch (err) {
-        log.error("Failed to set title bar overlay color dynamically", { err: err.message });
+        log.error("Failed to set title bar overlay theme", { err: err.message });
       }
     }
     return { ok: true };

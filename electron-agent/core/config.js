@@ -30,7 +30,7 @@ const config = {
 
   metricsIntervalMs: Number(process.env.VORCE_METRICS_INTERVAL_MS) || 5_000,
   realtimePresenceIntervalMs: Number(process.env.VORCE_REALTIME_PRESENCE_INTERVAL_MS) || 5_000,
-  firestoreRealtimePresenceEnabled: process.env.VORCE_FIRESTORE_REALTIME_PRESENCE === "true",
+  firestoreRealtimePresenceEnabled: process.env.VORCE_FIRESTORE_REALTIME_PRESENCE !== "false",
   firestoreHeartbeatEnabled: process.env.VORCE_FIRESTORE_HEARTBEAT === "true",
   firestoreDeviceStatusEnabled: process.env.VORCE_FIRESTORE_DEVICE_STATUS === "true",
   firestoreDeviceRegistrationEnabled: process.env.VORCE_FIRESTORE_DEVICE_REGISTRATION === "true",
