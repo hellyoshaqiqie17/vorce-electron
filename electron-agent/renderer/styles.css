@@ -578,6 +578,24 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
   align-items: flex-start;
   gap: 4px;
 }
+.health-card {
+  left: 32px;
+  top: 130px;
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.hours-card {
+  right: 32px;
+  bottom: 120px;
+  width: 145px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
 .fc-value {
   font-size: 18px;
   font-weight: 800;
@@ -589,6 +607,8 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
   width: 100%;
   height: 36px;
   margin-top: 6px;
+  will-change: transform;
+  transform: translateZ(0);
 }
 .fc-title {
   font-size: 11px;
@@ -640,16 +660,16 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
   animation: float-slower 8s ease-in-out infinite alternate;
 }
 .twitter-circle {
-  left: 64px;
-  top: 120px;
+  left: 48px;
+  top: 50px;
 }
 .instagram-circle {
-  left: 200px;
-  top: 60px;
+  left: 210px;
+  top: 40px;
 }
 .messenger-circle {
-  right: 80px;
-  bottom: 140px;
+  right: 48px;
+  bottom: 50px;
 }
 
 @keyframes float-slow {
