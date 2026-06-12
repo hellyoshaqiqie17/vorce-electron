@@ -450,7 +450,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     titleBarOverlay: {
-      color: "#5A30FF",
+      color: "rgba(0, 0, 0, 0)",
       symbolColor: "#ffffff",
       height: 36,
     },
@@ -1025,14 +1025,21 @@ function setupIpc() {
     if (mainWindow && !mainWindow.isDestroyed() && process.platform === "win32" && mainWindow.setTitleBarOverlay) {
       try {
         if (dim) {
-          mainWindow.setTitleBarOverlay({
-            color: "#a1a5ab",
-            symbolColor: "#ffffff"
-          });
+          if (currentTheme === "login") {
+            mainWindow.setTitleBarOverlay({
+              color: "rgba(0, 0, 0, 0)",
+              symbolColor: "rgba(255, 255, 255, 0.6)"
+            });
+          } else {
+            mainWindow.setTitleBarOverlay({
+              color: "#a1a5ab",
+              symbolColor: "#ffffff"
+            });
+          }
         } else {
           if (currentTheme === "login") {
             mainWindow.setTitleBarOverlay({
-              color: "#5A30FF",
+              color: "rgba(0, 0, 0, 0)",
               symbolColor: "#ffffff"
             });
           } else {
@@ -1055,7 +1062,7 @@ function setupIpc() {
       try {
         if (theme === "login") {
           mainWindow.setTitleBarOverlay({
-            color: "#5A30FF",
+            color: "rgba(0, 0, 0, 0)",
             symbolColor: "#ffffff"
           });
         } else {
