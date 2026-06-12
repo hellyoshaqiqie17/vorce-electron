@@ -445,7 +445,7 @@ function createWindow() {
     minWidth: 1180,
     minHeight: 760,
     title: "Vlinked",
-    icon: path.join(__dirname, "vorcelogo", "VLinked.png"),
+    icon: path.join(__dirname, "vorcelogo", "Vlinked.png"),
     show: false,
     frame: false,
     titleBarStyle: "hidden",
@@ -1098,7 +1098,7 @@ app.whenReady().then(async () => {
 
   if (process.platform === "darwin") {
     try {
-      const iconPath = path.join(__dirname, "vorcelogo", "VLinked.png");
+      const iconPath = path.join(__dirname, "vorcelogo", "Vlinked.png");
       const image = nativeImage.createFromPath(iconPath);
       if (!image.isEmpty()) {
         app.dock.setIcon(image);

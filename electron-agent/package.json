@@ -42,7 +42,7 @@
           ]
         }
       ],
-      "icon": "vorcelogo/VLinked.png",
+      "icon": "vorcelogo/Vlinked.png",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
@@ -50,7 +50,7 @@
         "dmg",
         "zip"
       ],
-      "icon": "vorcelogo/VLinked.png",
+      "icon": "vorcelogo/Vlinked.png",
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -65,7 +65,7 @@
         "AppImage",
         "deb"
       ],
-      "icon": "vorcelogo/VLinked.png",
+      "icon": "vorcelogo/Vlinked.png",
       "category": "Utility"
     },
     "nsis": {
