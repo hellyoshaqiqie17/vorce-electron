@@ -41,6 +41,8 @@ async function upsertDevice({ deviceId, binding, info, status = "online" }) {
   const brandRam = `${info.ram?.totalGB || info.totalRam || 0} GB ${info.ram?.type || ""} (${info.ram?.manufacturer || "Unknown Brand"})`.trim();
   const brandGpu = [info.gpu?.vendor, info.gpu?.model].filter(Boolean).join(" ").trim() || "Unknown GPU";
   const brandSsd = info.disk ? `${info.disk.vendor || ""} ${info.disk.name || "Unknown SSD"} (${info.disk.sizeGB || 0} GB) ${info.disk.type || ""}`.trim().replace(/\s+/g, " ") : "Unknown SSD";
+  const brandOs = [info.os, info.osVersion, info.osRelease].filter(Boolean).join(" ").trim() || "Unknown OS";
+  const brandIp = `IP: ${info.network?.localIp || "N/A"} (MAC: ${info.network?.macAddress || "N/A"})`;
 
   // History update helper function
   function updateHistoryList(history, newValue) {
@@ -64,6 +66,8 @@ async function upsertDevice({ deviceId, binding, info, status = "online" }) {
   const ramHistory = updateHistoryList(existingData.ramHistory, brandRam);
   const gpuHistory = updateHistoryList(existingData.gpuHistory, brandGpu);
   const ssdHistory = updateHistoryList(existingData.ssdHistory, brandSsd);
+  const osHistory = updateHistoryList(existingData.osHistory, brandOs);
+  const networkHistory = updateHistoryList(existingData.networkHistory, brandIp);
 
   const payload = {
     deviceId,
@@ -118,6 +122,8 @@ async function upsertDevice({ deviceId, binding, info, status = "online" }) {
     ramHistory,
     gpuHistory,
     ssdHistory,
+    osHistory,
+    networkHistory,
     lastSeen: serverTimestamp(),
     status,
     updatedAt: serverTimestamp(),
