@@ -84,12 +84,28 @@ function loadState() {
 }
 
 function normalizeState(next) {
+  const apps = {};
+  if (next?.apps && typeof next.apps === "object") {
+    for (const [appName, appStats] of Object.entries(next.apps)) {
+      if (appStats && typeof appStats === "object") {
+        apps[appName] = {
+          durationSeconds: Number(appStats.durationSeconds) || 0,
+          sessions: Number(appStats.sessions) || 0,
+          cpuSum: Number(appStats.cpuSum) || 0,
+          ramSum: Number(appStats.ramSum) || 0,
+          sampleCount: Number(appStats.sampleCount) || 0,
+          category: appStats.category || "Application",
+          titles: appStats.titles && typeof appStats.titles === "object" ? appStats.titles : {},
+        };
+      }
+    }
+  }
   return {
     ...freshState(),
     ...(next && typeof next === "object" ? next : {}),
     gpuSum: Number(next?.gpuSum) || 0,
     gpuPeak: Number(next?.gpuPeak) || 0,
-    apps: next?.apps && typeof next.apps === "object" ? next.apps : {},
+    apps,
     categories: next?.categories && typeof next.categories === "object" ? next.categories : {},
     productivity: {
       productiveSeconds: Number(next?.productivity?.productiveSeconds) || 0,
@@ -128,7 +144,29 @@ function ensureContext({ deviceId, binding }) {
   return true;
 }
 
-function addAppSeconds(app, category, seconds, cpu, ram) {
+function cleanTitle(title, appName) {
+  if (!title) return "";
+  let t = String(title).trim();
+  const suffixes = [
+    ` - ${appName}`,
+    ` | ${appName}`,
+    " - Google Chrome",
+    " - Microsoft Edge",
+    " - Mozilla Firefox",
+    " - Brave",
+    " - Safari",
+    " - Visual Studio Code",
+    " - Cursor"
+  ];
+  for (const suffix of suffixes) {
+    if (t.endsWith(suffix)) {
+      t = t.slice(0, -suffix.length).trim();
+    }
+  }
+  return t.slice(0, 150) || "Untitled";
+}
+
+function addAppSeconds(app, category, seconds, cpu, ram, windowTitle) {
   const key = String(app || "Unknown").slice(0, 120) || "Unknown";
   if (!state.apps[key]) {
     state.apps[key] = {
@@ -138,6 +176,7 @@ function addAppSeconds(app, category, seconds, cpu, ram) {
       ramSum: 0,
       sampleCount: 0,
       category,
+      titles: {},
     };
   }
   const appStats = state.apps[key];
@@ -146,6 +185,14 @@ function addAppSeconds(app, category, seconds, cpu, ram) {
   appStats.ramSum += ram;
   appStats.sampleCount += 1;
   appStats.category = category;
+  if (!appStats.titles) appStats.titles = {};
+  
+  if (windowTitle) {
+    const cleaned = cleanTitle(windowTitle, key);
+    if (cleaned) {
+      appStats.titles[cleaned] = (appStats.titles[cleaned] || 0) + seconds;
+    }
+  }
 }
 
 function addCategorySeconds(category, seconds) {
@@ -173,6 +220,7 @@ function summarizeApps() {
       category: stats.category || "Application",
       cpuAverage: stats.sampleCount ? round1(stats.cpuSum / stats.sampleCount) : 0,
       ramAverage: stats.sampleCount ? round1(stats.ramSum / stats.sampleCount) : 0,
+      titles: stats.titles || {},
     };
   }
   return out;
@@ -292,7 +340,7 @@ function observe({ deviceId, binding, sample, intervalSeconds = 5 }) {
   if (state.currentApp && state.currentApp !== appName) state.switchCount += 1;
   if (state.currentApp !== appName) {
     if (!state.apps[appName]) {
-      state.apps[appName] = { durationSeconds: 0, sessions: 0, cpuSum: 0, ramSum: 0, sampleCount: 0, category };
+      state.apps[appName] = { durationSeconds: 0, sessions: 0, cpuSum: 0, ramSum: 0, sampleCount: 0, category, titles: {} };
     }
     state.apps[appName].sessions = (state.apps[appName].sessions || 0) + 1;
     state.currentSessionStartedAt = nowSec;
@@ -312,7 +360,7 @@ function observe({ deviceId, binding, sample, intervalSeconds = 5 }) {
   if (gpu > state.gpuPeak) state.gpuPeak = gpu;
   state.lastSampleAt = nowSec;
 
-  addAppSeconds(appName, category, seconds, cpu, ram);
+  addAppSeconds(appName, category, seconds, cpu, ram, windowTitle);
   addCategorySeconds(category, seconds);
   addProductivitySeconds(category, seconds);
 }
