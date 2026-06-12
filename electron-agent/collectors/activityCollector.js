@@ -32,7 +32,18 @@ function normalize(result) {
 async function collectActivity() {
   try {
     const activeWin = await loadActiveWin();
-    const result = await activeWin({ screenRecordingPermission: false });
+    let hasPermission = false;
+    if (process.platform === "darwin") {
+      const { systemPreferences } = require("electron");
+      try {
+        hasPermission = systemPreferences.getMediaAccessStatus("screen") === "granted";
+      } catch (_) {
+        hasPermission = false;
+      }
+    } else {
+      hasPermission = true;
+    }
+    const result = await activeWin({ screenRecordingPermission: hasPermission });
     const activity = normalize(result);
     if (activity.appName !== "Unknown" || activity.windowTitle || activity.pid) {
       lastKnownActivity = activity;

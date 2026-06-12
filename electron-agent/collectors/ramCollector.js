@@ -29,17 +29,32 @@ async function collectRam() {
 async function collectRamLayout() {
   try {
     const layout = await si.memLayout();
-    if (!Array.isArray(layout) || layout.length === 0) {
-      return { type: "Unknown", clockSpeed: 0, manufacturer: "Unknown" };
+    if (Array.isArray(layout) && layout.length > 0) {
+      const types = layout.map((x) => x.type).filter(Boolean);
+      const uniqueTypes = [...new Set(types)];
+      const type = uniqueTypes.join("/") || "Unknown";
+      const clockSpeed = layout[0]?.clockSpeed || 0;
+      const manufacturers = layout.map((x) => x.manufacturer).filter(Boolean);
+      const uniqueManufacturers = [...new Set(manufacturers)];
+      const manufacturer = uniqueManufacturers.join("/") || "Unknown";
+      return { type, clockSpeed, manufacturer };
     }
-    const types = layout.map((x) => x.type).filter(Boolean);
-    const uniqueTypes = [...new Set(types)];
-    const type = uniqueTypes.join("/") || "Unknown";
-    const clockSpeed = layout[0]?.clockSpeed || 0;
-    const manufacturers = layout.map((x) => x.manufacturer).filter(Boolean);
-    const uniqueManufacturers = [...new Set(manufacturers)];
-    const manufacturer = uniqueManufacturers.join("/") || "Unknown";
-    return { type, clockSpeed, manufacturer };
+
+    // Fallback for macOS M-series (Apple Silicon SoC unified memory)
+    if (process.platform === "darwin") {
+      const { exec } = require("child_process");
+      const stdout = await new Promise((resolve) => {
+        exec("system_profiler SPMemoryDataType", { timeout: 3000 }, (err, stdout) => {
+          if (err) resolve("");
+          else resolve(stdout);
+        });
+      });
+      const typeMatch = stdout.match(/Type:\s+(.+)/);
+      const type = typeMatch ? typeMatch[1].trim() : "LPDDR";
+      return { type, clockSpeed: 0, manufacturer: "Apple" };
+    }
+
+    return { type: "Unknown", clockSpeed: 0, manufacturer: "Unknown" };
   } catch (err) {
     return { type: "Unknown", clockSpeed: 0, manufacturer: "Unknown" };
   }

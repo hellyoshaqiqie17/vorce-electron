@@ -288,6 +288,15 @@ function checkAutomation() {
   });
 }
 
+function checkScreenRecording() {
+  if (process.platform !== "darwin") return true;
+  try {
+    return systemPreferences.getMediaAccessStatus("screen") === "granted";
+  } catch (err) {
+    return true;
+  }
+}
+
 function installUpdate() {
   Promise.all([
     monitor.stop(),
@@ -496,9 +505,10 @@ function createWindow() {
 
   if (process.platform === "darwin") {
     const hasAccessibility = checkAccessibility();
+    const hasScreenRecording = checkScreenRecording();
     checkAutomation().then((hasAutomation) => {
       if (!mainWindow || mainWindow.isDestroyed()) return;
-      if (hasAccessibility && hasAutomation) {
+      if (hasAccessibility && hasAutomation && hasScreenRecording) {
         mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
       } else {
         mainWindow.loadFile(path.join(__dirname, "renderer", "permissions.html"));
@@ -909,13 +919,14 @@ function setupIpc() {
   ipcMain.handle("permissions:check", async () => {
     const accessibility = checkAccessibility();
     const automation = await checkAutomation();
-    const ok = accessibility && automation;
+    const screenRecording = checkScreenRecording();
+    const ok = accessibility && automation && screenRecording;
     
     if (ok && mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
     }
     
-    return { ok, accessibility, automation };
+    return { ok, accessibility, automation, screenRecording };
   });
 
   ipcMain.handle("permissions:bypass", () => {
@@ -932,6 +943,19 @@ function setupIpc() {
 
   ipcMain.handle("permissions:request-automation", () => {
     shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
+    return { ok: true };
+  });
+
+  ipcMain.handle("permissions:request-screen-recording", async () => {
+    if (process.platform === "darwin") {
+      const { desktopCapturer } = require("electron");
+      try {
+        await desktopCapturer.getSources({ types: ["screen"], thumbnailSize: { width: 1, height: 1 } });
+      } catch (err) {
+        log.error("Failed to trigger screen recording prompt", { err: err.message });
+      }
+      shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture");
+    }
     return { ok: true };
   });
 

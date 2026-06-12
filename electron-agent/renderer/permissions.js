@@ -3,8 +3,10 @@
 document.addEventListener("DOMContentLoaded", () => {
   const badgeAccessibility = document.getElementById("badge-accessibility");
   const badgeAutomation = document.getElementById("badge-automation");
+  const badgeScreenRecording = document.getElementById("badge-screen-recording");
   const btnRequestAccessibility = document.getElementById("btn-request-accessibility");
   const btnRequestAutomation = document.getElementById("btn-request-automation");
+  const btnRequestScreenRecording = document.getElementById("btn-request-screen-recording");
   const btnCheckStart = document.getElementById("btn-check-start");
 
   let isChecking = false;
@@ -34,16 +36,28 @@ document.addEventListener("DOMContentLoaded", () => {
         badgeAutomation.textContent = "Belum Aktif";
       }
 
+      // Update Screen Recording Badge
+      if (badgeScreenRecording) {
+        if (status.screenRecording) {
+          badgeScreenRecording.className = "perm-badge active";
+          badgeScreenRecording.textContent = "Aktif";
+        } else {
+          badgeScreenRecording.className = "perm-badge inactive";
+          badgeScreenRecording.textContent = "Belum Aktif";
+        }
+      }
+
       // Update Progress Bar
       let count = 0;
       if (status.accessibility) count++;
       if (status.automation) count++;
+      if (status.screenRecording) count++;
 
-      const pct = count === 2 ? 100 : count === 1 ? 50 : 0;
+      const pct = count === 3 ? 100 : count === 2 ? 67 : count === 1 ? 33 : 0;
       const progressText = document.getElementById("progress-text");
       const progressBar = document.getElementById("progress-bar");
       if (progressText && progressBar) {
-        progressText.textContent = `${count}/2 Aktif (${pct}%)`;
+        progressText.textContent = `${count}/3 Izin Aktif (${pct}%)`;
         progressBar.style.width = `${pct}%`;
         if (pct === 100) {
           progressBar.style.backgroundColor = "var(--green)";
@@ -54,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Note: If both are active, the main process will automatically call
+      // Note: If all are active, the main process will automatically call
       // mainWindow.loadFile("renderer/index.html"), which will unload this page.
     } catch (err) {
       console.error("Gagal memeriksa izin akses:", err);
@@ -71,6 +85,12 @@ document.addEventListener("DOMContentLoaded", () => {
   btnRequestAutomation.addEventListener("click", () => {
     window.vlinkedAgent.invoke("permissions:request-automation");
   });
+
+  if (btnRequestScreenRecording) {
+    btnRequestScreenRecording.addEventListener("click", () => {
+      window.vlinkedAgent.invoke("permissions:request-screen-recording");
+    });
+  }
 
   const btnBypassPermissions = document.getElementById("btn-bypass-permissions");
   btnBypassPermissions.addEventListener("click", () => {

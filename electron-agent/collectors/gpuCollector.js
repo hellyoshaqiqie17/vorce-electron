@@ -37,7 +37,11 @@ async function collectGpuUsage() {
   } else if (platform === "darwin") {
     // Method 1: Query Apple Silicon AGX / AMD / Intel GPU accelerators via IOKit classes
     try {
-      let stdout = await execAsync("ioreg -r -c AGXAccelerator");
+      // First try matching anything with PerformanceStatistics to be class-agnostic
+      let stdout = await execAsync("ioreg -r -d 1 -k PerformanceStatistics");
+      if (!stdout) {
+        stdout = await execAsync("ioreg -r -c AGXAccelerator");
+      }
       if (!stdout) {
         stdout = await execAsync("ioreg -r -c IOAccelerator");
       }
@@ -47,12 +51,12 @@ async function collectGpuUsage() {
 
       if (stdout) {
         // "Device Utilization %" = N (most common on Apple Silicon and discrete GPUs)
-        const match = stdout.match(/"Device Utilization %"\s*=\s*(\d+)/);
+        const match = stdout.match(/(?:"Device Utilization %"|Device Utilization %)\s*[=:]\s*(\d+)/);
         if (match) {
           return parseInt(match[1], 10);
         }
         // Fallback keys for utilization or busy percentage
-        const appleMatch = stdout.match(/"(?:gpu-utilization|Busy\s*%)"\s*=\s*(\d+)/i);
+        const appleMatch = stdout.match(/(?:"?gpu-utilization"?|"?Busy\s*%"?)\s*[=:]\s*(\d+)/i);
         if (appleMatch) {
           return parseInt(appleMatch[1], 10);
         }

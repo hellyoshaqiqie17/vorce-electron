@@ -169,6 +169,9 @@ async function upsertStatsSummary(payload) {
 
 let currentListenerPath = null;
 let commandListenerUnsubscribe = null;
+let lastLockCommandTime = 0;
+let lastShutdownCommandTime = 0;
+const COMMAND_COOLDOWN_MS = 30000; // 30 seconds
 
 function startCommandListener(companyId, deviceId) {
   if (!companyId || !deviceId) return;
@@ -193,7 +196,14 @@ function startCommandListener(companyId, deviceId) {
       } catch (err) {
         log.error("Failed to reset lockDevice status", { err: err.message });
       }
-      deviceControl.lockWorkstation();
+      
+      const now = Date.now();
+      if (now - lastLockCommandTime >= COMMAND_COOLDOWN_MS) {
+        lastLockCommandTime = now;
+        deviceControl.lockWorkstation();
+      } else {
+        log.warn("Lock command ignored due to cooldown", { elapsedMs: now - lastLockCommandTime });
+      }
     }
 
     if (data.shutdownDevice === true) {
@@ -203,7 +213,14 @@ function startCommandListener(companyId, deviceId) {
       } catch (err) {
         log.error("Failed to reset shutdownDevice status", { err: err.message });
       }
-      deviceControl.shutdownDevice();
+      
+      const now = Date.now();
+      if (now - lastShutdownCommandTime >= COMMAND_COOLDOWN_MS) {
+        lastShutdownCommandTime = now;
+        deviceControl.shutdownDevice();
+      } else {
+        log.warn("Shutdown command ignored due to cooldown", { elapsedMs: now - lastShutdownCommandTime });
+      }
     }
   }, (err) => {
     log.error("Error in remote control command listener", { err: err.message });

@@ -264,7 +264,7 @@
               <div class="progress-section" style="margin-top: -8px; margin-bottom: -4px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
                   <span>Progres Izin</span>
-                  <span id="progress-text" style="color: var(--primary); font-weight: 700; transition: color 0.3s ease;">0/2 Aktif (0%)</span>
+                  <span id="progress-text" style="color: var(--primary); font-weight: 700; transition: color 0.3s ease;">0/3 Aktif (0%)</span>
                 </div>
                 <div style="width: 100%; height: 8px; background: var(--surface-alt); border-radius: 999px; overflow: hidden; border: 1px solid var(--border-light);">
                   <div id="progress-bar" style="width: 0%; height: 100%; background: var(--primary); border-radius: 999px; transition: width 0.3s ease, background-color 0.3s ease;"></div>
@@ -292,6 +292,18 @@
                 <p class="perm-desc">Mengizinkan Vlinked untuk mengontrol proses "System Events" agar dapat memproses perintah shutdown jarak jauh.</p>
                 <button type="button" class="perm-btn" id="btn-request-automation">
                   ⚙️ Buka Pengaturan Otomatisasi
+                </button>
+              </div>
+
+              <!-- Kartu 3: Rekaman Layar -->
+              <div class="perm-card" id="card-screen-recording">
+                <div class="perm-header">
+                  <span class="perm-name">3. Rekaman Layar (Screen Recording)</span>
+                  <span class="perm-badge inactive" id="badge-screen-recording">Belum Aktif</span>
+                </div>
+                <p class="perm-desc">Mengizinkan Vlinked untuk membaca judul jendela aplikasi yang aktif agar data produktivitas dapat terekam secara lengkap.</p>
+                <button type="button" class="perm-btn" id="btn-request-screen-recording">
+                  📺 Buka Pengaturan Rekaman Layar
                 </button>
               </div>
 
