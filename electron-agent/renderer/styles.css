@@ -659,15 +659,15 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
   z-index: 2;
   animation: float-slower 8s ease-in-out infinite alternate;
 }
-.twitter-circle {
+.chip-circle {
   left: 48px;
   top: 50px;
 }
-.instagram-circle {
+.wifi-circle {
   left: 210px;
   top: 40px;
 }
-.messenger-circle {
+.database-circle {
   right: 48px;
   bottom: 50px;
 }
