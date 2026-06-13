@@ -58,57 +58,92 @@ async function fetchWifiSsid() {
     // Fall through to platform-specific fallback
   }
 
-  // Method 2: macOS native airport CLI (does NOT need Location Services permission)
+  // macOS specific fallbacks
   if (os.platform() === "darwin") {
-    try {
-      const { execSync } = require("child_process");
-      const output = execSync(
-        "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I",
-        { timeout: 3000, encoding: "utf8" }
-      );
-      const match = output.match(/\s+SSID:\s+(.+)/);
-      if (match && match[1].trim()) {
-        cachedWifi = match[1].trim();
-        lastWifiFetchTime = now;
-        return cachedWifi;
-      }
-    } catch (_) {
-      // airport not available or failed
-    }
+    const { execSync } = require("child_process");
 
-    // Method 3: macOS networksetup CLI fallback (works on Sonoma/Sequoia without Location Services)
+    // Helper to resolve the correct Wi-Fi interface (e.g. en0)
+    let wifiIface = "en0";
     try {
-      const { execSync } = require("child_process");
-      // Find wifi interface (default to en0)
-      let wifiIface = "en0";
-      try {
-        const portsOut = execSync("networksetup -listallhardwareports", { timeout: 2000, encoding: "utf8" });
-        const lines = portsOut.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].includes("Wi-Fi") || lines[i].includes("AirPort")) {
-            const nextLine = lines[i + 1];
-            if (nextLine && nextLine.includes("Device:")) {
-              const devMatch = nextLine.match(/Device:\s+(\S+)/);
-              if (devMatch) {
-                wifiIface = devMatch[1];
-                break;
-              }
+      const portsOut = execSync("networksetup -listallhardwareports", { timeout: 2000, encoding: "utf8" });
+      const lines = portsOut.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes("Wi-Fi") || lines[i].includes("AirPort")) {
+          const nextLine = lines[i + 1];
+          if (nextLine && nextLine.includes("Device:")) {
+            const devMatch = nextLine.match(/Device:\s+(\S+)/);
+            if (devMatch) {
+              wifiIface = devMatch[1];
+              break;
             }
           }
         }
-      } catch (_) {
-        // use default en0
       }
+    } catch (_) {
+      // Default to en0 if listallhardwareports fails
+    }
 
+    // Fallback 1: system_profiler (very reliable on Ventura/Sonoma/Sequoia without Location Services)
+    try {
+      const output = execSync("system_profiler SPAirPortDataType", { timeout: 3000, encoding: "utf8" });
+      const lines = output.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes("Current Network Information:")) {
+          const nextLine = lines[i + 1];
+          if (nextLine && nextLine.trim()) {
+            const ssid = nextLine.replace(/:$/, "").trim();
+            if (ssid && ssid !== "<redacted>") {
+              cachedWifi = ssid;
+              lastWifiFetchTime = now;
+              return cachedWifi;
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // system_profiler failed
+    }
+
+    // Fallback 2: networksetup -getairportnetwork
+    try {
       const output = execSync(`networksetup -getairportnetwork ${wifiIface}`, { timeout: 3000, encoding: "utf8" });
       const match = output.match(/Current Wi-Fi Network:\s+(.+)/);
-      if (match && match[1].trim()) {
+      if (match && match[1].trim() && match[1].trim() !== "<redacted>") {
         cachedWifi = match[1].trim();
         lastWifiFetchTime = now;
         return cachedWifi;
       }
     } catch (_) {
       // networksetup failed
+    }
+
+    // Fallback 3: ipconfig getsummary
+    try {
+      const output = execSync(`ipconfig getsummary ${wifiIface}`, { timeout: 3000, encoding: "utf8" });
+      const match = output.match(/\s*SSID\s*:\s*(.+)/);
+      if (match && match[1].trim() && match[1].trim() !== "<redacted>") {
+        cachedWifi = match[1].trim();
+        lastWifiFetchTime = now;
+        return cachedWifi;
+      }
+    } catch (_) {
+      // ipconfig failed
+    }
+
+    // Fallback 4: airport -I (legacy, for older macOS versions)
+    try {
+      const output = execSync(
+        "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I",
+        { timeout: 3000, encoding: "utf8" }
+      );
+      const match = output.match(/\s+SSID:\s+(.+)/);
+      if (match && match[1].trim() && match[1].trim() !== "<redacted>") {
+        cachedWifi = match[1].trim();
+        lastWifiFetchTime = now;
+        return cachedWifi;
+      }
+    } catch (_) {
+      // airport failed
     }
   }
 
@@ -126,13 +161,13 @@ function round(value, digits = 1) {
 
 function findPrimaryInterface() {
   const interfaces = os.networkInterfaces();
-  for (const entries of Object.values(interfaces)) {
+  for (const [name, entries] of Object.entries(interfaces)) {
     for (const item of entries || []) {
       if (item && item.family === "IPv4" && !item.internal) {
         return {
           localIp: item.address || "",
           macAddress: item.mac || "",
-          iface: item.name || "",
+          iface: name || "",
         };
       }
     }
