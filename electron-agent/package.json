@@ -27,7 +27,8 @@
     "publish": {
       "provider": "github",
       "owner": "hellyoshaqiqie17",
-      "repo": "vorce-electron"
+      "repo": "vorce-electron",
+      "vPrefixedTagName": true
     },
     "directories": {
       "output": "dist"

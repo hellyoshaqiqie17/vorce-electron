@@ -352,7 +352,9 @@ function setupAutoUpdater() {
     autoUpdater.setFeedURL({
       provider: "github",
       owner: "hellyoshaqiqie17",
-      repo: "vorce-electron"
+      repo: "vorce-electron",
+      vPrefixedTagName: true,
+      tagNamePrefix: "v"
     });
   } catch (err) {
     log.error("Failed to set feed URL programmatically:", err.message);
