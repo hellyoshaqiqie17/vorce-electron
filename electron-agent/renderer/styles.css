@@ -686,3 +686,12 @@ h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 600; }
     display: none !important;
   }
 }
+
+/* macOS Traffic Lights Padding Adjustments */
+body.platform-darwin .login-left {
+  padding-top: 88px;
+}
+body.platform-darwin .sidebar {
+  padding-top: 60px;
+}
+

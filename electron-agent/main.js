@@ -816,6 +816,19 @@ async function handleOAuthCallback(url) {
   }
 }
 
+function openMacPreferences(url) {
+  if (process.platform !== "darwin") return;
+  log.info("Opening macOS system preferences via exec open", { url });
+  exec(`open "${url}"`, (err) => {
+    if (err) {
+      log.error("Failed to open macOS preferences via exec open", { err: err.message });
+      shell.openExternal(url).catch((ex) => {
+        log.error("Failed to open macOS preferences via shell.openExternal fallback", { err: ex.message });
+      });
+    }
+  });
+}
+
 function setupIpc() {
   ipcMain.handle("auth:open-google", async () => {
     openGoogleAuthInBrowser();
@@ -939,12 +952,12 @@ function setupIpc() {
   });
 
   ipcMain.handle("permissions:request-accessibility", () => {
-    shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility");
+    openMacPreferences("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility");
     return { ok: true };
   });
 
   ipcMain.handle("permissions:request-automation", () => {
-    shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
+    openMacPreferences("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
     return { ok: true };
   });
 
@@ -956,7 +969,7 @@ function setupIpc() {
       } catch (err) {
         log.error("Failed to trigger screen recording prompt", { err: err.message });
       }
-      shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture");
+      openMacPreferences("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture");
     }
     return { ok: true };
   });

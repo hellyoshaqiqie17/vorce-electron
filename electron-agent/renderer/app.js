@@ -1,5 +1,11 @@
 "use strict";
 
+// Add macOS detection for layout fixes
+const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || navigator.userAgent.includes('Macintosh');
+if (isMac) {
+  document.body.classList.add("platform-darwin");
+}
+
 const api = window.vlinkedAgent;
 const $ = (sel) => document.querySelector(sel);
 

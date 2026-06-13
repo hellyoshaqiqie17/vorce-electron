@@ -83,9 +83,6 @@
       "**/*",
       "!dist/**",
       "!node_modules/.cache/**"
-    ],
-    "extraResources": [
-      "vorcelogo/**"
     ]
   },
   "dependencies": {

@@ -1,6 +1,12 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Add macOS detection for layout fixes
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || navigator.userAgent.includes('Macintosh');
+  if (isMac) {
+    document.body.classList.add("platform-darwin");
+  }
+
   const badgeAccessibility = document.getElementById("badge-accessibility");
   const badgeAutomation = document.getElementById("badge-automation");
   const badgeScreenRecording = document.getElementById("badge-screen-recording");
@@ -59,13 +65,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (progressText && progressBar) {
         progressText.textContent = `${count}/3 Izin Aktif (${pct}%)`;
         progressBar.style.width = `${pct}%`;
-        if (pct === 100) {
-          progressBar.style.backgroundColor = "var(--green)";
-          progressText.style.color = "var(--green)";
-        } else {
-          progressBar.style.backgroundColor = "var(--primary)";
-          progressText.style.color = "var(--primary)";
-        }
+        progressBar.style.backgroundColor = "var(--green)";
+        progressText.style.color = "var(--green)";
       }
 
       // Note: If all are active, the main process will automatically call

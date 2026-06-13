@@ -25,6 +25,7 @@ const channels = {
     "permissions:check",
     "permissions:request-accessibility",
     "permissions:request-automation",
+    "permissions:request-screen-recording",
     "permissions:bypass",
     "app:get-version",
     "app:check-update",
