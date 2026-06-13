@@ -297,6 +297,39 @@ function checkScreenRecording() {
   }
 }
 
+async function checkLocation() {
+  if (process.platform !== "darwin") return true;
+  try {
+    const networkCollector = require("./collectors/networkCollector");
+    const net = await networkCollector.collectNetwork();
+    if (net.wifi && net.wifi !== "<redacted>") return true;
+
+    const { execSync } = require("child_process");
+    let wifiIface = "";
+    try {
+      const portsOut = execSync("networksetup -listallhardwareports", { timeout: 2000, encoding: "utf8" });
+      const lines = portsOut.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes("Wi-Fi") || lines[i].includes("AirPort")) {
+          const nextLine = lines[i + 1];
+          if (nextLine && nextLine.includes("Device:")) {
+            const devMatch = nextLine.match(/Device:\s+(\S+)/);
+            if (devMatch) {
+              wifiIface = devMatch[1];
+              break;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (wifiIface && net.iface === wifiIface) {
+      return false;
+    }
+  } catch (_) {}
+  return true;
+}
+
 function installUpdate() {
   Promise.all([
     monitor.stop(),
@@ -508,9 +541,9 @@ function createWindow() {
   if (process.platform === "darwin") {
     const hasAccessibility = checkAccessibility();
     const hasScreenRecording = checkScreenRecording();
-    checkAutomation().then((hasAutomation) => {
+    Promise.all([checkAutomation(), checkLocation()]).then(([hasAutomation, hasLocation]) => {
       if (!mainWindow || mainWindow.isDestroyed()) return;
-      if (hasAccessibility && hasAutomation && hasScreenRecording) {
+      if (hasAccessibility && hasAutomation && hasScreenRecording && hasLocation) {
         mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
       } else {
         mainWindow.loadFile(path.join(__dirname, "renderer", "permissions.html"));
@@ -935,13 +968,14 @@ function setupIpc() {
     const accessibility = checkAccessibility();
     const automation = await checkAutomation();
     const screenRecording = checkScreenRecording();
-    const ok = accessibility && automation && screenRecording;
+    const location = await checkLocation();
+    const ok = accessibility && automation && screenRecording && location;
     
     if (ok && mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
     }
     
-    return { ok, accessibility, automation, screenRecording };
+    return { ok, accessibility, automation, screenRecording, location };
   });
 
   ipcMain.handle("permissions:bypass", () => {
@@ -971,6 +1005,11 @@ function setupIpc() {
       }
       openMacPreferences("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture");
     }
+    return { ok: true };
+  });
+
+  ipcMain.handle("permissions:request-location", () => {
+    openMacPreferences("x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices");
     return { ok: true };
   });
 

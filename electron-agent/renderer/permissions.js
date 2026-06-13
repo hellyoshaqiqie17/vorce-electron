@@ -10,9 +10,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const badgeAccessibility = document.getElementById("badge-accessibility");
   const badgeAutomation = document.getElementById("badge-automation");
   const badgeScreenRecording = document.getElementById("badge-screen-recording");
+  const badgeLocation = document.getElementById("badge-location");
   const btnRequestAccessibility = document.getElementById("btn-request-accessibility");
   const btnRequestAutomation = document.getElementById("btn-request-automation");
   const btnRequestScreenRecording = document.getElementById("btn-request-screen-recording");
+  const btnRequestLocation = document.getElementById("btn-request-location");
   const btnCheckStart = document.getElementById("btn-check-start");
 
   let isChecking = false;
@@ -53,17 +55,29 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      // Update Location Badge
+      if (badgeLocation) {
+        if (status.location) {
+          badgeLocation.className = "perm-badge active";
+          badgeLocation.textContent = "Aktif";
+        } else {
+          badgeLocation.className = "perm-badge inactive";
+          badgeLocation.textContent = "Belum Aktif";
+        }
+      }
+
       // Update Progress Bar
       let count = 0;
       if (status.accessibility) count++;
       if (status.automation) count++;
       if (status.screenRecording) count++;
+      if (status.location) count++;
 
-      const pct = count === 3 ? 100 : count === 2 ? 67 : count === 1 ? 33 : 0;
+      const pct = count === 4 ? 100 : count === 3 ? 75 : count === 2 ? 50 : count === 1 ? 25 : 0;
       const progressText = document.getElementById("progress-text");
       const progressBar = document.getElementById("progress-bar");
       if (progressText && progressBar) {
-        progressText.textContent = `${count}/3 Izin Aktif (${pct}%)`;
+        progressText.textContent = `${count}/4 Izin Aktif (${pct}%)`;
         progressBar.style.width = `${pct}%`;
         progressBar.style.backgroundColor = "var(--green)";
         progressText.style.color = "var(--green)";
@@ -90,6 +104,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnRequestScreenRecording) {
     btnRequestScreenRecording.addEventListener("click", () => {
       window.vlinkedAgent.invoke("permissions:request-screen-recording");
+    });
+  }
+
+  if (btnRequestLocation) {
+    btnRequestLocation.addEventListener("click", () => {
+      window.vlinkedAgent.invoke("permissions:request-location");
     });
   }
 
