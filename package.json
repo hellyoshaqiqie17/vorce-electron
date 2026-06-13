@@ -1,6 +1,6 @@
 {
   "name": "vlinked-electron",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "Vlinked desktop applications built with Electron.",
   "private": true,
   "scripts": {

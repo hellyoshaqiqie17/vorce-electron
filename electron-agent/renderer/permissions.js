@@ -109,7 +109,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnRequestLocation) {
     btnRequestLocation.addEventListener("click", () => {
-      window.vlinkedAgent.invoke("permissions:request-location");
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log("Location allowed:", position);
+            checkPermissions();
+          },
+          (error) => {
+            console.warn("Location prompt failed/denied, opening settings:", error);
+            window.vlinkedAgent.invoke("permissions:request-location");
+          },
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
+        );
+      } else {
+        window.vlinkedAgent.invoke("permissions:request-location");
+      }
     });
   }
 
