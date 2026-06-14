@@ -185,7 +185,33 @@ async function collectNetwork() {
     fetchLocationFromIp(); // Fetch asynchronously, do not await to avoid blocking tick
   }
 
-  const wifi = await fetchWifiSsid();
+  let wifi = await fetchWifiSsid();
+
+  // macOS fallback for redacted Wi-Fi SSID
+  if (os.platform() === "darwin" && (!wifi || wifi === "<redacted>" || wifi.toLowerCase() === "redacted")) {
+    let isWifiIface = false;
+    try {
+      const { execSync } = require("child_process");
+      const portsOut = execSync("networksetup -listallhardwareports", { timeout: 2000, encoding: "utf8" });
+      const lines = portsOut.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes("Wi-Fi") || lines[i].includes("AirPort")) {
+          const nextLine = lines[i + 1];
+          if (nextLine && nextLine.includes("Device:")) {
+            const devMatch = nextLine.match(/Device:\s+(\S+)/);
+            if (devMatch && primary.iface === devMatch[1]) {
+              isWifiIface = true;
+              break;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    
+    if (isWifiIface) {
+      wifi = "Wi-Fi";
+    }
+  }
 
   try {
     const stats = await si.networkStats(primary.iface || "*");

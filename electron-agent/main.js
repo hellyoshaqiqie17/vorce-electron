@@ -964,11 +964,11 @@ function setupIpc() {
     }
   });
 
-  ipcMain.handle("permissions:check", async () => {
+  ipcMain.handle("permissions:check", async (event, rendererLocationStatus) => {
     const accessibility = checkAccessibility();
     const automation = await checkAutomation();
     const screenRecording = checkScreenRecording();
-    const location = await checkLocation();
+    const location = rendererLocationStatus !== undefined ? rendererLocationStatus : await checkLocation();
     const ok = accessibility && automation && screenRecording && location;
     
     if (ok && mainWindow && !mainWindow.isDestroyed()) {

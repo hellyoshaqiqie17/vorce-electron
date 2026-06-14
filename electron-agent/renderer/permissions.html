@@ -9,41 +9,49 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <style>
+      .login-right {
+        overflow-y: auto !important;
+        justify-content: flex-start !important;
+        padding: 40px 24px !important;
+      }
       .permissions-form-area {
         width: 100%;
         max-width: 440px;
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        gap: 16px;
       }
       .perm-title {
         font-size: 26px;
         font-weight: 800;
-        color: var(--text);
+        color: #ffffff;
         margin: 0;
         letter-spacing: -.02em;
       }
       .perm-subtitle {
-        color: var(--text-secondary);
+        color: rgba(255, 255, 255, 0.75);
         font-size: 14px;
         margin: 0;
         line-height: 1.5;
       }
       .perm-card {
-        padding: 20px;
+        padding: 14px 18px;
         border-radius: var(--radius);
-        border: 1px solid var(--border);
-        background: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         position: relative;
         overflow: hidden;
-        transition: box-shadow 0.2s, border-color 0.2s;
+        transition: box-shadow 0.2s, border-color 0.2s, background-color 0.2s;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 8px;
       }
       .perm-card:hover {
-        box-shadow: var(--shadow-md);
-        border-color: var(--primary-muted);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        border-color: rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.12);
       }
       .perm-header {
         display: flex;
@@ -53,7 +61,7 @@
       .perm-name {
         font-weight: 700;
         font-size: 15px;
-        color: var(--text);
+        color: #ffffff;
       }
       .perm-badge {
         font-size: 11px;
@@ -64,15 +72,15 @@
         letter-spacing: 0.02em;
       }
       .perm-badge.inactive {
-        background: var(--red-light);
-        color: var(--red);
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
       }
       .perm-badge.active {
-        background: var(--green-light);
-        color: var(--green);
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
       }
       .perm-desc {
-        color: var(--text-secondary);
+        color: rgba(255, 255, 255, 0.7);
         font-size: 13px;
         margin: 0;
         line-height: 1.4;
@@ -82,11 +90,11 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        padding: 10px 14px;
-        border: 1px solid var(--border);
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 8px;
-        background: var(--surface-alt);
-        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
         font-size: 12px;
         font-weight: 600;
         cursor: pointer;
@@ -94,9 +102,8 @@
         width: fit-content;
       }
       .perm-btn:hover {
-        background: var(--primary-light);
-        color: var(--primary);
-        border-color: var(--primary-muted);
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.3);
       }
       .btn-start-app {
         display: flex;
@@ -124,14 +131,14 @@
         justify-content: center;
         gap: 8px;
         font-size: 12px;
-        color: var(--text-tertiary);
+        color: rgba(255, 255, 255, 0.5);
         margin-top: 16px;
       }
       .spinner {
         width: 14px;
         height: 14px;
-        border: 2px solid var(--border);
-        border-top: 2px solid var(--primary);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-top: 2px solid #ffffff;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -142,8 +149,8 @@
         width: 100%;
         padding: 12px;
         background: transparent;
-        color: var(--text-secondary);
-        border: 1px solid var(--border);
+        color: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: var(--radius);
         font-size: 13px;
         font-weight: 600;
@@ -152,9 +159,15 @@
         margin-top: 10px;
       }
       .btn-bypass:hover {
-        background: var(--surface-alt);
-        color: var(--text);
-        border-color: var(--text-tertiary);
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+      .login-footer {
+        color: rgba(255, 255, 255, 0.4) !important;
+        font-size: 12px;
+        margin-top: 24px;
+        text-align: center;
       }
       @keyframes spin {
         0% { transform: rotate(0deg); }

@@ -19,12 +19,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let isChecking = false;
 
+  async function checkLocationPermission() {
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        if (result.state === "granted") return true;
+        if (result.state === "denied") return false;
+        if (result.state === "prompt") return false;
+      } catch (_) {
+        // ignore and fallback
+      }
+    }
+    
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(true);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        () => resolve(true),
+        (err) => {
+          if (err.code === 1) { // PERMISSION_DENIED
+            resolve(false);
+          } else {
+            resolve(true); // Unavailable / Timeout means permission is granted
+          }
+        },
+        { enableHighAccuracy: false, timeout: 1000, maximumAge: 10000 }
+      );
+    });
+  }
+
   async function checkPermissions() {
     if (isChecking) return;
     isChecking = true;
 
     try {
-      const status = await window.vlinkedAgent.invoke("permissions:check");
+      const hasLocation = isMac ? await checkLocationPermission() : true;
+      const status = await window.vlinkedAgent.invoke("permissions:check", hasLocation);
       
       // Update Accessibility Badge
       if (status.accessibility) {
