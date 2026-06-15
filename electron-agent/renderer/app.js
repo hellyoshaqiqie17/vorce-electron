@@ -386,7 +386,11 @@ function renderRoute(route) {
         </article>
       </section>`,
   };
+  if (route === "agent-diagnostics" && els.routeContent.dataset.renderedRoute === "agent-diagnostics") {
+    return;
+  }
   els.routeContent.innerHTML = routeBodies[route] || routeBodies.dashboard || "";
+  els.routeContent.dataset.renderedRoute = route;
   const liveChart = $("#route-live-chart");
   if (liveChart) svgLine(liveChart, analytics.cpu, { width: 720, height: 220, max: 100 });
 
