@@ -87,15 +87,31 @@ async function fetchWifiSsid() {
     try {
       const output = execSync("system_profiler SPAirPortDataType", { timeout: 3000, encoding: "utf8" });
       const lines = output.split("\n");
+      let inInterfaceBlock = false;
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes("Current Network Information:")) {
-          const nextLine = lines[i + 1];
-          if (nextLine && nextLine.trim()) {
-            const ssid = nextLine.replace(/:$/, "").trim();
-            if (ssid && ssid !== "<redacted>") {
-              cachedWifi = ssid;
-              lastWifiFetchTime = now;
-              return cachedWifi;
+        const line = lines[i];
+        const trimmed = line.trim();
+        
+        const isInterfaceHeader = line.match(/^\s{8}[a-zA-Z0-9]+:$/);
+        if (isInterfaceHeader) {
+          if (trimmed === `${wifiIface}:`) {
+            inInterfaceBlock = true;
+          } else {
+            inInterfaceBlock = false;
+          }
+          continue;
+        }
+        
+        if (inInterfaceBlock) {
+          if (line.includes("Current Network Information:")) {
+            const nextLine = lines[i + 1];
+            if (nextLine && nextLine.trim()) {
+              const ssid = nextLine.replace(/:$/, "").trim();
+              if (ssid) {
+                cachedWifi = ssid;
+                lastWifiFetchTime = now;
+                return cachedWifi;
+              }
             }
           }
         }

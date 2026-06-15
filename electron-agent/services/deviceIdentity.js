@@ -13,7 +13,7 @@ function normalizePart(value) {
   return String(value || "")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
@@ -48,7 +48,15 @@ async function generateDeviceId() {
 
 async function getOrCreateDeviceId() {
   const cached = tokenStore.getDeviceId();
-  if (cached) return cached;
+  if (cached) {
+    if (cached.includes(".")) {
+      const migrated = cached.replace(/\./g, "-");
+      tokenStore.setDeviceId(migrated);
+      log.info("Migrated deviceId with dots to hyphens", { old: cached, new: migrated });
+      return migrated;
+    }
+    return cached;
+  }
   const deviceId = await generateDeviceId();
   tokenStore.setDeviceId(deviceId);
   return deviceId;

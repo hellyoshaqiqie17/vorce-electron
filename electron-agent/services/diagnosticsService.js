@@ -262,15 +262,31 @@ function getWifiDiagnostics() {
     const out = execSync("system_profiler SPAirPortDataType", { timeout: 3000, encoding: "utf8" });
     result.rawCollectorOutput = out;
     
-    // Parse SSID and BSSID
+    // Parse SSID and BSSID specifically for the active interface
     const lines = out.split("\n");
+    let inInterfaceBlock = false;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes("Current Network Information:")) {
-        const nextLine = lines[i + 1];
-        if (nextLine) result.ssid = nextLine.replace(/:$/, "").trim();
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      const isInterfaceHeader = line.match(/^\s{8}[a-zA-Z0-9]+:$/);
+      if (isInterfaceHeader) {
+        if (trimmed === `${result.interface}:`) {
+          inInterfaceBlock = true;
+        } else {
+          inInterfaceBlock = false;
+        }
+        continue;
       }
-      if (lines[i].includes("BSSID:")) {
-        result.bssid = lines[i].split("BSSID:")[1].trim();
+      
+      if (inInterfaceBlock) {
+        if (line.includes("Current Network Information:")) {
+          const nextLine = lines[i + 1];
+          if (nextLine) result.ssid = nextLine.replace(/:$/, "").trim();
+        }
+        if (line.includes("BSSID:")) {
+          result.bssid = line.split("BSSID:")[1].trim();
+        }
       }
     }
   } catch (err) {
