@@ -18,13 +18,22 @@ const userBindingService = require("./userBindingService");
 const localApiClient = require("./localApiClient");
 const config = require("../core/config");
 const { make } = require("../utils/logger");
+const diagnosticsService = require("./diagnosticsService");
 
 const log = make("deviceService");
 
 let registrationState = null;
 
 async function registerDevice() {
-  const info = await collectDeviceInfo();
+  const startTime = Date.now();
+  let info;
+  try {
+    info = await collectDeviceInfo();
+    diagnosticsService.recordCollector("deviceInfo", Date.now() - startTime, true);
+  } catch (err) {
+    diagnosticsService.recordCollector("deviceInfo", Date.now() - startTime, false, err);
+    throw err;
+  }
   const deviceId = await deviceIdentity.getOrCreateDeviceId();
   const binding = await userBindingService.getAuthenticatedBinding();
 

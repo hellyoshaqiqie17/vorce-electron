@@ -34,37 +34,52 @@ let running = false;
 let onSample = null;
 let lastFirestoreHeartbeatAt = 0;
 
-async function settle(promise, fallback) {
+const diagnosticsService = require("../services/diagnosticsService");
+
+async function instrumentCollector(name, promise, fallback) {
+  const startTime = Date.now();
   try {
-    return await promise;
+    const result = await promise;
+    diagnosticsService.recordCollector(name, Date.now() - startTime, true);
+    return result;
   } catch (err) {
-    log.warn("collector failed", { err: err.message });
+    diagnosticsService.recordCollector(name, Date.now() - startTime, false, err);
+    log.warn(`collector ${name} failed`, { err: err.message });
     return fallback;
   }
 }
 
 async function takeSample() {
-  const activity = await settle(collectActivity(), {
+  const activity = await instrumentCollector("activity", collectActivity(), {
     appName: "Unknown",
     windowTitle: "",
     executable: "",
     pid: 0,
   });
   const [cpu, ram, storage, network, processInfo, topProcesses, gpuUsage] = await Promise.all([
-    settle(collectCpu(), { usagePercent: 0, currentSpeedGHz: 0 }),
-    settle(collectRam(), { usagePercent: 0, usedGB: 0, freeGB: 0, totalGB: 0 }),
-    settle(collectStorage(), { usedGB: 0, freeGB: 0, usagePercent: 0 }),
-    settle(collectNetwork(), { uploadKBps: 0, downloadKBps: 0, localIp: "", macAddress: "" }),
-    settle(collectProcess(activity), {
+    instrumentCollector("cpu", collectCpu(), { usagePercent: 0, currentSpeedGHz: 0 }),
+    instrumentCollector("ram", collectRam(), { usagePercent: 0, usedGB: 0, freeGB: 0, totalGB: 0 }),
+    instrumentCollector("disk", collectStorage(), { usedGB: 0, freeGB: 0, usagePercent: 0 }),
+    instrumentCollector("network", collectNetwork(), { uploadKBps: 0, downloadKBps: 0, localIp: "", macAddress: "" }),
+    instrumentCollector("activeWindow", collectProcess(activity), {
       appName: activity.appName,
       windowTitle: activity.windowTitle,
       executable: activity.executable,
       pid: activity.pid,
     }),
-    settle(collectTopProcesses(3), []),
-    settle(collectGpuUsage(), 0),
+    instrumentCollector("application", collectTopProcesses(3), []),
+    instrumentCollector("gpu", collectGpuUsage(), 0),
   ]);
-  const idle = collectIdle();
+
+  const startTimeIdle = Date.now();
+  let idle;
+  try {
+    idle = collectIdle();
+    diagnosticsService.recordCollector("idle", Date.now() - startTimeIdle, true);
+  } catch (err) {
+    diagnosticsService.recordCollector("idle", Date.now() - startTimeIdle, false, err);
+    idle = { isIdle: false, idleTime: 0 };
+  }
 
   return {
     timestamp: Math.floor(Date.now() / 1000),
@@ -127,7 +142,9 @@ async function tick() {
   let sample;
   try {
     sample = await takeSample();
+    diagnosticsService.recordPipelineStage("sample", true);
   } catch (err) {
+    diagnosticsService.recordPipelineStage("sample", false, err);
     log.error("sampling failed", { err: err.message });
     return;
   }
@@ -143,7 +160,9 @@ async function tick() {
   // New intelligence pipeline: local processing first, compressed writes only.
   try {
     await intelligence.process({ deviceId, binding: state.binding, sample });
+    diagnosticsService.recordPipelineStage("intelligence", true);
   } catch (err) {
+    diagnosticsService.recordPipelineStage("intelligence", false, err);
     log.warn("intelligence pipeline failed", { err: err.message, status: err.status });
   }
 

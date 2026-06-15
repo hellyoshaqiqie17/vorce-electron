@@ -132,6 +132,7 @@ function routeMeta(route) {
     sessions: ["Workforce Sessions", "Employee Sessions"],
     alerts: ["Operational Risk", "Alerts"],
     settings: ["Agent Controls", "Settings"],
+    "agent-diagnostics": ["System Integrity & Auditing", "Agent Diagnostics Center"],
   }[route] || ["Enterprise Device Intelligence Platform", "Dashboard"];
 }
 
@@ -194,6 +195,196 @@ function renderRoute(route) {
         ${panel("Versi Aplikasi", "Informasi versi dan status pembaruan otomatis.", `<div class="settings-list"><label><span>Versi saat ini</span><strong id="settings-current-version">v${currentVersion}</strong></label><label><span>Status update</span><strong id="settings-update-status">${updateStatusLabel(currentUpdateState)}</strong></label></div><div style="margin-top:14px;display:flex;gap:8px;"><button id="btn-check-update" class="btn primary" style="font-size:12px;padding:8px 16px;">Periksa Pembaruan</button></div>`)}
         ${panel("Sync Queue", "Offline-first desktop state.", `<div class="empty-state"><strong>No pending queue</strong><span>Local analytics are compressed before upload.</span></div>`)}
       </section>`,
+    "agent-diagnostics": `
+      <div class="diag-actions">
+        <button id="btn-export-diagnostics" class="btn primary" style="font-size:13px;padding:10px 20px;">
+          <span>📥</span> Generate Diagnostic Report
+        </button>
+      </div>
+      <section class="diag-grid">
+        <!-- Section 1 — Agent Status -->
+        <article class="diag-card" id="card-agent-status">
+          <div class="diag-title-row">
+            <h3><span>ℹ️</span> Agent Status</h3>
+            <span class="status-indicator healthy" id="agent-status-indicator">
+              <span class="status-dot-mini"></span>ONLINE
+            </span>
+          </div>
+          <div class="diag-fields" id="fields-agent-status">
+          </div>
+        </article>
+
+        <!-- Section 3 — WiFi Diagnostics -->
+        <article class="diag-card" id="card-wifi-diagnostics">
+          <div class="diag-title-row">
+            <h3><span>📶</span> WiFi Diagnostics</h3>
+            <span class="status-indicator" id="wifi-status-indicator">
+              <span class="status-dot-mini"></span>DIAGNOSING
+            </span>
+          </div>
+          <div class="diag-fields" id="fields-wifi-diagnostics">
+          </div>
+          <div class="rc-box" id="wifi-rc-box" style="display: none;">
+            <div class="rc-title">⚠️ Root Cause Analysis</div>
+            <ul class="rc-list" id="wifi-rc-list">
+            </ul>
+          </div>
+          <div style="margin-top: 10px;">
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">Raw Output:</label>
+            <div class="pre-output" id="wifi-raw-output">No output collected</div>
+          </div>
+        </article>
+
+        <!-- Section 4 — Permission Diagnostics -->
+        <article class="diag-card" id="card-permissions-diagnostics">
+          <div class="diag-title-row">
+            <h3><span>🔒</span> Permission Diagnostics</h3>
+            <span class="status-indicator" id="permissions-status-indicator">
+              <span class="status-dot-mini"></span>CHECKING
+            </span>
+          </div>
+          <div class="diag-fields" id="fields-permissions-diagnostics">
+          </div>
+        </article>
+
+        <!-- Section 5 — Firebase Diagnostics -->
+        <article class="diag-card" id="card-firebase-diagnostics">
+          <div class="diag-title-row">
+            <h3><span>🔥</span> Firebase Diagnostics</h3>
+            <span class="status-indicator" id="firebase-status-indicator">
+              <span class="status-dot-mini"></span>CONNECTED
+            </span>
+          </div>
+          <div class="diag-fields" id="fields-firebase-diagnostics">
+          </div>
+        </article>
+
+        <!-- Section 6 — Presence Diagnostics -->
+        <article class="diag-card" id="card-presence-diagnostics">
+          <div class="diag-title-row">
+            <h3><span>👥</span> Presence Diagnostics</h3>
+            <span class="status-indicator" id="presence-status-indicator">
+              <span class="status-dot-mini"></span>ACTIVE
+            </span>
+          </div>
+          <div class="diag-fields" id="fields-presence-diagnostics">
+          </div>
+          <div class="rc-box" id="presence-rc-box" style="display: none;">
+            <div class="rc-title">⚠️ Root Cause Analysis</div>
+            <ul class="rc-list" id="presence-rc-list">
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 7 — Intelligence Pipeline Diagnostics -->
+        <article class="diag-card" id="card-pipeline-diagnostics" style="grid-column: span 2;">
+          <div class="diag-title-row">
+            <h3><span>⚙️</span> Intelligence Pipeline Diagnostics</h3>
+            <span class="status-indicator" id="pipeline-status-indicator">
+              <span class="status-dot-mini"></span>RUNNING
+            </span>
+          </div>
+          <div class="diag-table-container">
+            <table class="diag-table">
+              <thead>
+                <tr>
+                  <th>Stage</th>
+                  <th>Status</th>
+                  <th>Last Processed</th>
+                  <th>Last Error</th>
+                </tr>
+              </thead>
+              <tbody id="table-pipeline-diagnostics">
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- Section 2 — Collector Diagnostics -->
+        <article class="diag-card" id="card-collectors-diagnostics" style="grid-column: span 2;">
+          <div class="diag-title-row">
+            <h3><span>📊</span> Collector Diagnostics</h3>
+            <span class="status-indicator" id="collectors-status-indicator">
+              <span class="status-dot-mini"></span>HEALTHY
+            </span>
+          </div>
+          <div class="diag-table-container">
+            <table class="diag-table">
+              <thead>
+                <tr>
+                  <th>Collector</th>
+                  <th>Status</th>
+                  <th>Last Run</th>
+                  <th>Duration</th>
+                  <th>Average</th>
+                  <th>Last Error</th>
+                </tr>
+              </thead>
+              <tbody id="table-collectors-diagnostics">
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- Section 8 — Firestore Write Audit -->
+        <article class="diag-card" id="card-firestore-audit">
+          <div class="diag-title-row">
+            <h3><span>📂</span> Firestore Write Audit</h3>
+          </div>
+          <div class="diag-table-container">
+            <table class="diag-table">
+              <thead>
+                <tr>
+                  <th>Collection</th>
+                  <th>Timestamp</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody id="table-firestore-audit">
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- Section 9 — RTDB Write Audit -->
+        <article class="diag-card">
+          <div class="diag-title-row">
+            <h3><span>⚡</span> RTDB Write Audit</h3>
+          </div>
+          <div class="diag-table-container">
+            <table class="diag-table">
+              <thead>
+                <tr>
+                  <th>Path</th>
+                  <th>Last Write</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody id="table-rtdb-audit">
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- Section 10 — System Log Viewer -->
+        <article class="diag-card log-viewer-card">
+          <div class="diag-title-row">
+            <h3><span>📝</span> System Log Viewer</h3>
+          </div>
+          <div class="log-viewer-controls">
+            <input type="text" class="log-search-input" id="log-search" placeholder="Search message or module..." />
+            <div class="log-level-btns">
+              <button class="btn-log-lvl active" data-level="ALL">ALL</button>
+              <button class="btn-log-lvl" data-level="INFO">INFO</button>
+              <button class="btn-log-lvl" data-level="WARN">WARN</button>
+              <button class="btn-log-lvl" data-level="ERROR">ERROR</button>
+              <button class="btn-log-lvl" data-level="DEBUG">DEBUG</button>
+            </div>
+          </div>
+          <div class="log-list" id="log-list-entries">
+          </div>
+        </article>
+      </section>`,
   };
   els.routeContent.innerHTML = routeBodies[route] || routeBodies.dashboard || "";
   const liveChart = $("#route-live-chart");
@@ -252,6 +443,13 @@ function switchRoute(route) {
   currentRoute = route || "dashboard";
   els.navItems.forEach((item) => item.classList.toggle("active", item.dataset.route === currentRoute));
   renderRoute(currentRoute);
+
+  if (route === "agent-diagnostics") {
+    startDiagnosticsPolling();
+    bindDiagnosticsEvents();
+  } else {
+    stopDiagnosticsPolling();
+  }
 
   // Bind check update button if on settings page
   if (route === "settings") {
@@ -724,6 +922,328 @@ async function refreshSession() {
       });
     }
   }).catch(() => {});
+}
+
+// ==========================================================================
+// Diagnostics Page Controllers
+// ==========================================================================
+let diagnosticsPollInterval = null;
+let diagnosticsLogsInterval = null;
+let logFilterLevel = "ALL";
+
+async function getGeolocationStatus() {
+  if (!navigator.permissions || !navigator.permissions.query) return false;
+  try {
+    const status = await navigator.permissions.query({ name: "geolocation" });
+    return status.state === "granted";
+  } catch (_) {
+    return false;
+  }
+}
+
+function startDiagnosticsPolling() {
+  if (diagnosticsPollInterval) clearInterval(diagnosticsPollInterval);
+  if (diagnosticsLogsInterval) clearInterval(diagnosticsLogsInterval);
+
+  const poll = async () => {
+    try {
+      const geoGranted = await getGeolocationStatus();
+      const report = await api.invoke("diagnostics:get-report", geoGranted);
+      updateDiagnosticsUI(report);
+    } catch (_) {}
+  };
+  
+  poll();
+  diagnosticsPollInterval = setInterval(poll, 2500);
+
+  refreshLogs();
+  diagnosticsLogsInterval = setInterval(refreshLogs, 3000);
+}
+
+function stopDiagnosticsPolling() {
+  if (diagnosticsPollInterval) {
+    clearInterval(diagnosticsPollInterval);
+    diagnosticsPollInterval = null;
+  }
+  if (diagnosticsLogsInterval) {
+    clearInterval(diagnosticsLogsInterval);
+    diagnosticsLogsInterval = null;
+  }
+}
+
+function bindDiagnosticsEvents() {
+  const btnExport = $("#btn-export-diagnostics");
+  if (btnExport) {
+    // Prevent duplicate handlers
+    const newBtn = btnExport.cloneNode(true);
+    btnExport.parentNode.replaceChild(newBtn, btnExport);
+    
+    newBtn.addEventListener("click", async () => {
+      newBtn.disabled = true;
+      const text = newBtn.innerHTML;
+      newBtn.innerHTML = `<span>⏳</span> Exporting...`;
+      try {
+        const geoGranted = await getGeolocationStatus();
+        const res = await api.invoke("diagnostics:export-report", geoGranted);
+        if (res.ok) {
+          alert(`Report exported successfully to:\n${res.filePath}`);
+        } else {
+          alert(`Export failed: ${res.error || 'Unknown error'}`);
+        }
+      } catch (err) {
+        alert(`Export failed: ${err.message}`);
+      } finally {
+        newBtn.disabled = false;
+        newBtn.innerHTML = text;
+      }
+    });
+  }
+
+  const searchInput = $("#log-search");
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      refreshLogs();
+    });
+  }
+
+  const lvlBtns = document.querySelectorAll(".btn-log-lvl");
+  lvlBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      lvlBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      logFilterLevel = btn.dataset.level;
+      refreshLogs();
+    });
+  });
+}
+
+function updateDiagnosticsUI(report) {
+  if (currentRoute !== "agent-diagnostics") return;
+
+  // 1) Agent Status
+  const statusEl = $("#fields-agent-status");
+  if (statusEl && report.agentStatus) {
+    const s = report.agentStatus;
+    statusEl.innerHTML = `
+      <div class="diag-field"><label>Version</label><span>${s.agentVersion}</span></div>
+      <div class="diag-field"><label>Platform</label><span>${s.platform}</span></div>
+      <div class="diag-field"><label>OS Version</label><span>${s.osVersion}</span></div>
+      <div class="diag-field"><label>Device ID</label><span>${s.deviceId || '—'}</span></div>
+      <div class="diag-field"><label>User ID</label><span>${s.userId || '—'}</span></div>
+      <div class="diag-field"><label>Company ID</label><span>${s.companyId || '—'}</span></div>
+      <div class="diag-field"><label>Agent Running</label><span style="color:${s.agentRunning ? 'var(--green)' : 'var(--red)'}">${s.agentRunning}</span></div>
+      <div class="diag-field"><label>Monitor Running</label><span style="color:${s.monitorRunning ? 'var(--green)' : 'var(--red)'}">${s.monitorRunning}</span></div>
+      <div class="diag-field"><label>Last Heartbeat</label><span>${s.lastHeartbeat ? time(new Date(s.lastHeartbeat).getTime()/1000) : '—'}</span></div>
+      <div class="diag-field"><label>Last Presence Update</label><span>${s.lastPresenceUpdate ? time(new Date(s.lastPresenceUpdate).getTime()/1000) : '—'}</span></div>
+      <div class="diag-field"><label>Last Stats Update</label><span>${s.lastStatsUpdate ? time(new Date(s.lastStatsUpdate).getTime()/1000) : '—'}</span></div>
+      <div class="diag-field"><label>Last Snapshot</label><span>${s.lastSnapshot ? time(new Date(s.lastSnapshot).getTime()/1000) : '—'}</span></div>
+    `;
+    
+    const indicator = $("#agent-status-indicator");
+    if (indicator) {
+      indicator.className = `status-indicator ${s.monitorRunning ? 'healthy' : 'error'}`;
+      indicator.innerHTML = `<span class="status-dot-mini"></span>${s.monitorRunning ? 'ACTIVE' : 'STANDBY'}`;
+    }
+  }
+
+  // 3) WiFi Diagnostics
+  const wifiEl = $("#fields-wifi-diagnostics");
+  if (wifiEl && report.wifi) {
+    const w = report.wifi;
+    wifiEl.innerHTML = `
+      <div class="diag-field"><label>SSID</label><span>${w.ssid || '<redacted>'}</span></div>
+      <div class="diag-field"><label>BSSID</label><span>${w.bssid || '—'}</span></div>
+      <div class="diag-field"><label>Interface</label><span>${w.interface}</span></div>
+      <div class="diag-field"><label>Permission Status</label><span style="color:${w.permissionStatus === 'granted' ? 'var(--green)' : 'var(--red)'}">${w.permissionStatus}</span></div>
+      <div class="diag-field"><label>Redacted Status</label><span>${w.isRedacted}</span></div>
+      <div class="diag-field"><label>Collector Status</label><span style="color:${w.wifiCollectorStatus === 'healthy' ? 'var(--green)' : 'var(--red)'}">${w.wifiCollectorStatus}</span></div>
+    `;
+
+    const indicator = $("#wifi-status-indicator");
+    if (indicator) {
+      const isOk = w.wifiCollectorStatus === 'healthy' && w.ssid && w.ssid !== '<redacted>';
+      indicator.className = `status-indicator ${isOk ? 'healthy' : w.isRedacted ? 'warning' : 'error'}`;
+      indicator.innerHTML = `<span class="status-dot-mini"></span>${isOk ? 'HEALTHY' : w.isRedacted ? 'REDACTED' : 'ERROR'}`;
+    }
+
+    // Wi-Fi Root Cause Box
+    const rcBox = $("#wifi-rc-box");
+    const rcList = $("#wifi-rc-list");
+    if (rcBox && rcList) {
+      if (!w.ssid || w.ssid === '<redacted>' || w.isRedacted) {
+        rcBox.style.display = "block";
+        rcList.innerHTML = `
+          <li>Location Services disabled (WiFi SSID retrieval may fail)</li>
+          <li>macOS Tahoe/Sonoma/Sequoia privacy restriction</li>
+          <li>Airport command or networksetup unavailable</li>
+          <li>Collector parsing failure or permission denied</li>
+        `;
+      } else {
+        rcBox.style.display = "none";
+      }
+    }
+
+    const rawOut = $("#wifi-raw-output");
+    if (rawOut) {
+      rawOut.textContent = w.rawCollectorOutput || "No output collected";
+    }
+  }
+
+  // 4) Permission Diagnostics
+  const permEl = $("#fields-permissions-diagnostics");
+  if (permEl && report.permissions) {
+    const p = report.permissions;
+    let html = "";
+    let allOk = true;
+    for (const [k, v] of Object.entries(p)) {
+      if (!v) allOk = false;
+      const color = v ? 'var(--green)' : 'var(--red)';
+      html += `<div class="diag-field"><label>${k}</label><span style="color:${color}">${v ? 'GRANTED' : 'DENIED'}</span></div>`;
+    }
+    permEl.innerHTML = html;
+
+    const indicator = $("#permissions-status-indicator");
+    if (indicator) {
+      indicator.className = `status-indicator ${allOk ? 'healthy' : 'error'}`;
+      indicator.innerHTML = `<span class="status-dot-mini"></span>${allOk ? 'ALL GRANTED' : 'MISSING PERMS'}`;
+    }
+  }
+
+  // 5) Firebase Diagnostics
+  const fbEl = $("#fields-firebase-diagnostics");
+  if (fbEl && report.firebase) {
+    const fb = report.firebase;
+    fbEl.innerHTML = `
+      <div class="diag-field"><label>Auth Signed In</label><span style="color:${fb.authentication.signedIn ? 'var(--green)' : 'var(--red)'}">${fb.authentication.signedIn}</span></div>
+      <div class="diag-field"><label>Auth Email</label><span>${fb.authentication.email || '—'}</span></div>
+      <div class="diag-field"><label>Firestore Connected</label><span style="color:${fb.firestore.connected ? 'var(--green)' : 'var(--red)'}">${fb.firestore.connected}</span></div>
+      <div class="diag-field"><label>Firestore Last Write</label><span>${fb.firestore.lastWrite ? time(new Date(fb.firestore.lastWrite).getTime()/1000) : '—'}</span></div>
+      <div class="diag-field"><label>RTDB Connected</label><span style="color:${fb.realtimeDatabase.connected ? 'var(--green)' : 'var(--red)'}">${fb.realtimeDatabase.connected}</span></div>
+      <div class="diag-field"><label>RTDB Last Write</label><span>${fb.realtimeDatabase.lastWrite ? time(new Date(fb.realtimeDatabase.lastWrite).getTime()/1000) : '—'}</span></div>
+    `;
+
+    const indicator = $("#firebase-status-indicator");
+    if (indicator) {
+      const allConnected = fb.firestore.connected && fb.realtimeDatabase.connected && fb.authentication.signedIn;
+      indicator.className = `status-indicator ${allConnected ? 'healthy' : 'error'}`;
+      indicator.innerHTML = `<span class="status-dot-mini"></span>${allConnected ? 'CONNECTED' : 'DISCONNECTED'}`;
+    }
+  }
+
+  // 6) Presence Diagnostics
+  const presEl = $("#fields-presence-diagnostics");
+  if (presEl && report.presence) {
+    const pr = report.presence;
+    presEl.innerHTML = `
+      <div class="diag-field"><label>Presence State</label><span style="color:${pr.presenceState === 'online' ? 'var(--green)' : 'var(--red)'}">${pr.presenceState}</span></div>
+      <div class="diag-field"><label>Session ID</label><span>${pr.sessionId ? pr.sessionId.slice(0, 12) + '...' : '—'}</span></div>
+      <div class="diag-field"><label>Current App</label><span>${pr.currentApp || '—'}</span></div>
+      <div class="diag-field"><label>Heartbeat Age</label><span>${pr.heartbeatAgeSeconds} seconds</span></div>
+      <div class="diag-field"><label>Write Latency</label><span>${pr.writeLatencyMs} ms</span></div>
+      <div class="diag-field"><label>Presence Writes</label><span>${pr.presenceWriteCount} (Fail: ${pr.presenceFailureCount})</span></div>
+    `;
+
+    const indicator = $("#presence-status-indicator");
+    if (indicator) {
+      const presenceOk = pr.presenceState === 'online' && pr.heartbeatAgeSeconds < 120 && pr.presenceFailureCount === 0;
+      indicator.className = `status-indicator ${presenceOk ? 'healthy' : pr.heartbeatAgeSeconds >= 480 ? 'error' : 'warning'}`;
+      indicator.innerHTML = `<span class="status-dot-mini"></span>${presenceOk ? 'ACTIVE' : 'LATENCY/STALE'}`;
+    }
+
+    const rcBox = $("#presence-rc-box");
+    const rcList = $("#presence-rc-list");
+    if (rcBox && rcList) {
+      if (pr.heartbeatAgeSeconds >= 480) {
+        rcBox.style.display = "block";
+        rcList.innerHTML = `
+          <li>Local API unavailable or timed out</li>
+          <li>Firebase write failure (Authentication expired)</li>
+          <li>Presence engine stopped or internet connection down</li>
+        `;
+      } else {
+        rcBox.style.display = "none";
+      }
+    }
+  }
+
+  // 7) Intelligence Pipeline Diagnostics
+  const pipeTable = $("#table-pipeline-diagnostics");
+  if (pipeTable && report.pipeline) {
+    pipeTable.innerHTML = report.pipeline.map(p => {
+      const statusColor = p.status === 'healthy' ? 'var(--green)' : 'var(--red)';
+      return `<tr>
+        <td><strong>${p.stage}</strong></td>
+        <td><span style="color:${statusColor};font-weight:700;">${p.status.toUpperCase()}</span></td>
+        <td>${p.lastProcessed ? time(new Date(p.lastProcessed).getTime()/1000) : '—'}</td>
+        <td style="color:var(--red); font-weight:500;">${p.lastError || ''}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // 2) Collector Diagnostics
+  const collTable = $("#table-collectors-diagnostics");
+  if (collTable && report.collectors) {
+    collTable.innerHTML = report.collectors.map(c => {
+      const statusColor = c.status === 'healthy' ? 'var(--green)' : c.status === 'warning' ? 'var(--amber)' : 'var(--red)';
+      return `<tr>
+        <td><strong>${c.collector}</strong></td>
+        <td><span style="color:${statusColor};font-weight:700;">${c.status.toUpperCase()}</span></td>
+        <td>${c.lastRun ? time(new Date(c.lastRun).getTime()/1000) : '—'}</td>
+        <td>${c.durationMs} ms</td>
+        <td>${c.averageDurationMs} ms</td>
+        <td style="color:var(--red); font-weight:500;">${c.lastError || ''}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // 8) Firestore Write Audit
+  const fsTable = $("#table-firestore-audit");
+  if (fsTable && report.recentFirestoreWrites) {
+    fsTable.innerHTML = report.recentFirestoreWrites.map(w => {
+      return `<tr>
+        <td><strong>${w.collection}</strong></td>
+        <td>${time(new Date(w.timestamp).getTime()/1000)}</td>
+        <td><span style="color:${w.success ? 'var(--green)' : 'var(--red)'};font-weight:700;">${w.success ? 'SUCCESS' : 'FAIL'}</span> ${w.error ? `<br><small style="color:var(--red);">${w.error}</small>` : ''}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="3" style="text-align:center;">No writes captured yet</td></tr>`;
+  }
+
+  // 9) RTDB Write Audit
+  const rtdbTable = $("#table-rtdb-audit");
+  if (rtdbTable && report.recentRtdbWrites) {
+    rtdbTable.innerHTML = report.recentRtdbWrites.map(w => {
+      return `<tr>
+        <td><strong>${w.path}</strong></td>
+        <td>${time(new Date(w.lastWrite).getTime()/1000)}</td>
+        <td><span style="color:${w.success ? 'var(--green)' : 'var(--red)'};font-weight:700;">${w.success ? 'SUCCESS' : 'FAIL'}</span> ${w.error ? `<br><small style="color:var(--red);">${w.error}</small>` : ''}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="3" style="text-align:center;">No writes captured yet</td></tr>`;
+  }
+}
+
+async function refreshLogs() {
+  if (currentRoute !== "agent-diagnostics") return;
+  const searchInput = $("#log-search");
+  const search = searchInput ? searchInput.value : "";
+  const logEntries = await api.invoke("diagnostics:get-logs", { level: logFilterLevel, search });
+  const container = $("#log-list-entries");
+  if (container) {
+    if (!logEntries || logEntries.length === 0) {
+      container.innerHTML = `<div style="text-align:center;color:#4b5563;padding-top:20px;">No logs match filters</div>`;
+      return;
+    }
+    container.innerHTML = logEntries.map(l => {
+      const date = new Date(l.timestamp);
+      const tsStr = date.toISOString().replace("T", " ").replace("Z", "").slice(0, 19);
+      const lvlClass = `level-${l.level.toLowerCase()}`;
+      return `<div class="log-entry-row ${lvlClass}">
+        <span class="ts">[${tsStr}]</span>
+        <span class="level">[${l.level}]</span>
+        <span class="module">[${l.module}]</span>
+        <span class="msg">${l.message}</span>
+      </div>`;
+    }).join("");
+  }
 }
 
 refreshSession().catch(() => showLogin());

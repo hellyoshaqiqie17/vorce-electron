@@ -35,6 +35,9 @@ const channels = {
     "app:confirm-close",
     "titlebar:dim",
     "titlebar:set-theme",
+    "diagnostics:get-report",
+    "diagnostics:get-logs",
+    "diagnostics:export-report",
   ],
   on: [
     "auth:login-success",

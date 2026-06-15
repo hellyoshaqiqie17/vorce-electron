@@ -22,6 +22,7 @@ const realtimePresenceStore = require("../realtimePresenceStore");
 const statsBatchBuffer = require("../statsBatchBuffer");
 const config = require("../../core/config");
 const { make } = require("../../utils/logger");
+const diagnosticsService = require("../diagnosticsService");
 
 const log = make("intelligence");
 
@@ -117,18 +118,45 @@ function init({ intervalMs = 5000 } = {}) {
   aggregation = aggregationEngineMod.createEngine({
     log,
     writers: {
-      daily: (payload) => localApiClient.writeDailyAnalytics({
-        binding: { companyId: payload.companyId, userId: payload.userId },
-        payload,
-      }),
-      weekly: (payload) => localApiClient.writeWeeklyAnalytics({
-        binding: { companyId: payload.companyId, userId: payload.userId },
-        payload,
-      }),
-      monthly: (payload) => localApiClient.writeMonthlyAnalytics({
-        binding: { companyId: payload.companyId, userId: payload.userId },
-        payload,
-      }),
+      daily: async (payload) => {
+        try {
+          const res = await localApiClient.writeDailyAnalytics({
+            binding: { companyId: payload.companyId, userId: payload.userId },
+            payload,
+          });
+          diagnosticsService.recordPipelineStage("daily analytics", true);
+          return res;
+        } catch (err) {
+          diagnosticsService.recordPipelineStage("daily analytics", false, err);
+          throw err;
+        }
+      },
+      weekly: async (payload) => {
+        try {
+          const res = await localApiClient.writeWeeklyAnalytics({
+            binding: { companyId: payload.companyId, userId: payload.userId },
+            payload,
+          });
+          diagnosticsService.recordPipelineStage("weekly analytics", true);
+          return res;
+        } catch (err) {
+          diagnosticsService.recordPipelineStage("weekly analytics", false, err);
+          throw err;
+        }
+      },
+      monthly: async (payload) => {
+        try {
+          const res = await localApiClient.writeMonthlyAnalytics({
+            binding: { companyId: payload.companyId, userId: payload.userId },
+            payload,
+          });
+          diagnosticsService.recordPipelineStage("monthly analytics", true);
+          return res;
+        } catch (err) {
+          diagnosticsService.recordPipelineStage("monthly analytics", false, err);
+          throw err;
+        }
+      },
     },
   });
 }
@@ -141,32 +169,46 @@ async function process({ deviceId, binding, sample }) {
   snapshot.start({ deviceId, binding });
 
   // 1) Sessionization first so presence can attach the active sessionId.
+  const sessionStart = Date.now();
   try {
     await session.observe({ deviceId, binding, sample });
+    diagnosticsService.recordPipelineStage("session", true);
+    diagnosticsService.recordCollector("session", Date.now() - sessionStart, true);
   } catch (err) {
+    diagnosticsService.recordPipelineStage("session", false, err);
+    diagnosticsService.recordCollector("session", Date.now() - sessionStart, false, err);
     log.warn("session observe failed", { err: err.message });
   }
 
   const active = session.getActive();
 
   // 2) Presence
+  const presenceStart = Date.now();
   try {
     await presence.observe({ deviceId, binding, sample, activeSession: active });
+    diagnosticsService.recordPipelineStage("presence", true);
+    diagnosticsService.recordCollector("presence", Date.now() - presenceStart, true);
   } catch (err) {
+    diagnosticsService.recordPipelineStage("presence", false, err);
+    diagnosticsService.recordCollector("presence", Date.now() - presenceStart, false, err);
     log.warn("presence observe failed", { err: err.message });
   }
 
   // 3) Anomaly detection
   try {
     await anomaly.observe({ deviceId, binding, sample });
+    diagnosticsService.recordPipelineStage("anomaly", true);
   } catch (err) {
+    diagnosticsService.recordPipelineStage("anomaly", false, err);
     log.warn("anomaly observe failed", { err: err.message });
   }
 
   // 4) Snapshot aggregation
   try {
     snapshot.observe({ sample, intervalSeconds });
+    diagnosticsService.recordPipelineStage("snapshot", true);
   } catch (err) {
+    diagnosticsService.recordPipelineStage("snapshot", false, err);
     log.warn("snapshot observe failed", { err: err.message });
   }
 }

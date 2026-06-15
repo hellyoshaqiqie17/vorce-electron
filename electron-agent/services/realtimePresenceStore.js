@@ -12,6 +12,7 @@ const firebaseClient = require("../firebase/firebaseClient");
 const config = require("../core/config");
 const { make } = require("../utils/logger");
 const deviceControl = require("../utils/deviceControl");
+const diagnosticsService = require("./diagnosticsService");
 
 const log = make("realtimePresenceStore");
 
@@ -115,9 +116,19 @@ async function upsertPresence(payload) {
   await ensureDisconnectHandler(payload);
   const db = firebaseClient.getRealtimeDb();
   const presenceRef = ref(db, statusPath(payload.companyId, payload.deviceId));
-  await update(presenceRef, normalizePresence(payload));
-  log.debug("presence updated", { deviceId: payload.deviceId, app: payload.currentApp });
-  return true;
+  const startTime = Date.now();
+  try {
+    const presenceData = normalizePresence(payload);
+    await update(presenceRef, presenceData);
+    diagnosticsService.recordPresenceWrite(true, Date.now() - startTime, payload);
+    diagnosticsService.recordRtdbWrite(statusPath(payload.companyId, payload.deviceId), true);
+    log.debug("presence updated", { deviceId: payload.deviceId, app: payload.currentApp });
+    return true;
+  } catch (err) {
+    diagnosticsService.recordPresenceWrite(false, Date.now() - startTime, payload, err);
+    diagnosticsService.recordRtdbWrite(statusPath(payload.companyId, payload.deviceId), false, err);
+    throw err;
+  }
 }
 
 async function markOffline({ deviceId, binding }) {
@@ -125,46 +136,64 @@ async function markOffline({ deviceId, binding }) {
 
   const db = firebaseClient.getRealtimeDb();
   const presenceRef = ref(db, statusPath(binding.companyId, deviceId));
-  await update(presenceRef, {
-    deviceId: safeKey(deviceId),
-    companyId: safeKey(binding.companyId),
-    userId: binding.userId,
-    userName: binding.displayName || "",
-    userEmail: binding.email || "",
-    state: "offline",
-    lastSeen: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    currentApp: null,
-    currentCategory: null,
-    activeWindow: null,
-    executable: null,
-    cpuNow: null,
-    ramNow: null,
-    gpuNow: null,
-    healthScore: null,
-    sessionId: null,
-    sessionStartedAt: null,
-    wifi: null,
-    location: null,
-    localIp: null,
-  });
-  log.info("presence offline", { deviceId });
-  return true;
+  try {
+    const data = {
+      deviceId: safeKey(deviceId),
+      companyId: safeKey(binding.companyId),
+      userId: binding.userId,
+      userName: binding.displayName || "",
+      userEmail: binding.email || "",
+      state: "offline",
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      currentApp: null,
+      currentCategory: null,
+      activeWindow: null,
+      executable: null,
+      cpuNow: null,
+      ramNow: null,
+      gpuNow: null,
+      healthScore: null,
+      sessionId: null,
+      sessionStartedAt: null,
+      wifi: null,
+      location: null,
+      localIp: null,
+    };
+    await update(presenceRef, data);
+    diagnosticsService.recordPresenceWrite(true, 0, { state: "offline", deviceId, companyId: binding.companyId, userId: binding.userId });
+    diagnosticsService.recordRtdbWrite(statusPath(binding.companyId, deviceId), true);
+    log.info("presence offline", { deviceId });
+    return true;
+  } catch (err) {
+    diagnosticsService.recordPresenceWrite(false, 0, { state: "offline", deviceId, companyId: binding.companyId, userId: binding.userId }, err);
+    diagnosticsService.recordRtdbWrite(statusPath(binding.companyId, deviceId), false, err);
+    throw err;
+  }
 }
 
 async function upsertStatsSummary(payload) {
   if (!payload?.companyId || !payload?.deviceId || !payload?.userId) return false;
 
   const db = firebaseClient.getRealtimeDb();
-  const summaryRef = ref(db, `stats/${safeKey(payload.companyId)}/${safeKey(payload.deviceId)}`);
-  await set(summaryRef, {
-    ...payload,
-    companyId: safeKey(payload.companyId),
-    deviceId: safeKey(payload.deviceId),
-    updatedAt: serverTimestamp(),
-  });
-  log.debug("stats summary updated", { deviceId: payload.deviceId, date: payload.date });
-  return true;
+  const path = `stats/${safeKey(payload.companyId)}/${safeKey(payload.deviceId)}`;
+  const summaryRef = ref(db, path);
+  try {
+    await set(summaryRef, {
+      ...payload,
+      companyId: safeKey(payload.companyId),
+      deviceId: safeKey(payload.deviceId),
+      updatedAt: serverTimestamp(),
+    });
+    diagnosticsService.recordRtdbWrite(path, true);
+    diagnosticsService.recordPipelineStage("stats summary", true);
+    log.debug("stats summary updated", { deviceId: payload.deviceId, date: payload.date });
+    return true;
+  } catch (err) {
+    diagnosticsService.recordRtdbWrite(path, false, err);
+    diagnosticsService.recordPipelineStage("stats summary", false, err);
+    throw err;
+  }
 }
 
 let currentListenerPath = null;

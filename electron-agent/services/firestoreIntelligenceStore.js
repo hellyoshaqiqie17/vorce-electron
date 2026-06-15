@@ -22,6 +22,7 @@ const {
 } = require("firebase/firestore");
 const firebaseClient = require("../firebase/firebaseClient");
 const { make } = require("../utils/logger");
+const diagnosticsService = require("./diagnosticsService");
 
 const log = make("firestoreIntelligenceStore");
 
@@ -38,90 +39,114 @@ function tsFromSeconds(sec) {
 }
 
 async function upsertPresence(payload) {
-  need("companyId", payload.companyId);
-  need("deviceId", payload.deviceId);
-  const ref = doc(db(), "companies", payload.companyId, "live_presence", payload.deviceId);
-  const data = {
-    ...payload,
-    sessionStartedAt: tsFromSeconds(payload.sessionStartedAt),
-    lastHeartbeat: tsFromSeconds(payload.lastHeartbeat) || serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-  await setDoc(ref, data, { merge: true });
-  log.debug("presence overwritten", { deviceId: payload.deviceId, app: payload.currentApp });
+  try {
+    need("companyId", payload.companyId);
+    need("deviceId", payload.deviceId);
+    const ref = doc(db(), "companies", payload.companyId, "live_presence", payload.deviceId);
+    const data = {
+      ...payload,
+      sessionStartedAt: tsFromSeconds(payload.sessionStartedAt),
+      lastHeartbeat: tsFromSeconds(payload.lastHeartbeat) || serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    await setDoc(ref, data, { merge: true });
+    diagnosticsService.recordFirestoreWrite("live_presence", true);
+    log.debug("presence overwritten", { deviceId: payload.deviceId, app: payload.currentApp });
+  } catch (err) {
+    diagnosticsService.recordFirestoreWrite("live_presence", false, err);
+    throw err;
+  }
 }
 
 async function writeFinalizedSession(payload) {
-  need("companyId", payload.companyId);
-  need("sessionId", payload.sessionId);
-  const ref = doc(db(), "companies", payload.companyId, "device_sessions", payload.sessionId);
-  const data = {
-    ...payload,
-    startedAt: tsFromSeconds(payload.startedAt),
-    endedAt: tsFromSeconds(payload.endedAt),
-    createdAt: serverTimestamp(),
-  };
-  await setDoc(ref, data, { merge: true });
+  try {
+    need("companyId", payload.companyId);
+    need("sessionId", payload.sessionId);
+    const ref = doc(db(), "companies", payload.companyId, "device_sessions", payload.sessionId);
+    const data = {
+      ...payload,
+      startedAt: tsFromSeconds(payload.startedAt),
+      endedAt: tsFromSeconds(payload.endedAt),
+      createdAt: serverTimestamp(),
+    };
+    await setDoc(ref, data, { merge: true });
 
-  // Compact timeline feed (capped client-side via TTL/external trim later)
-  const timelineRef = doc(collection(db(), "companies", payload.companyId, "activity_timeline"), payload.sessionId);
-  await setDoc(timelineRef, {
-    sessionId: payload.sessionId,
-    deviceId: payload.deviceId,
-    userId: payload.userId,
-    app: payload.app,
-    category: payload.category,
-    startedAt: tsFromSeconds(payload.startedAt),
-    endedAt: tsFromSeconds(payload.endedAt),
-    durationSeconds: payload.durationSeconds,
-    productivityType: payload.productivityType,
-    focusScore: payload.focusScore,
-    createdAt: serverTimestamp(),
-  }, { merge: true });
-
-  // Behavior aggregation per user (rolling)
-  if (payload.userId) {
-    const behaviorRef = doc(db(), "companies", payload.companyId, "employee_behavior", payload.userId);
-    await setDoc(behaviorRef, {
+    // Compact timeline feed (capped client-side via TTL/external trim later)
+    const timelineRef = doc(collection(db(), "companies", payload.companyId, "activity_timeline"), payload.sessionId);
+    await setDoc(timelineRef, {
+      sessionId: payload.sessionId,
+      deviceId: payload.deviceId,
       userId: payload.userId,
-      companyId: payload.companyId,
-      lastSessionId: payload.sessionId,
-      lastSessionAt: tsFromSeconds(payload.endedAt) || serverTimestamp(),
-      totalSessions: increment(1),
-      totalActiveSeconds: increment(payload.durationSeconds || 0),
-      lastFocusScore: payload.focusScore || 0,
-      lastCategory: payload.category || "",
-      lastApp: payload.app || "",
-      updatedAt: serverTimestamp(),
+      app: payload.app,
+      category: payload.category,
+      startedAt: tsFromSeconds(payload.startedAt),
+      endedAt: tsFromSeconds(payload.endedAt),
+      durationSeconds: payload.durationSeconds,
+      productivityType: payload.productivityType,
+      focusScore: payload.focusScore,
+      createdAt: serverTimestamp(),
     }, { merge: true });
-  }
 
-  log.debug("session finalized", { sessionId: payload.sessionId, app: payload.app, dur: payload.durationSeconds });
+    // Behavior aggregation per user (rolling)
+    if (payload.userId) {
+      const behaviorRef = doc(db(), "companies", payload.companyId, "employee_behavior", payload.userId);
+      await setDoc(behaviorRef, {
+        userId: payload.userId,
+        companyId: payload.companyId,
+        lastSessionId: payload.sessionId,
+        lastSessionAt: tsFromSeconds(payload.endedAt) || serverTimestamp(),
+        totalSessions: increment(1),
+        totalActiveSeconds: increment(payload.durationSeconds || 0),
+        lastFocusScore: payload.focusScore || 0,
+        lastCategory: payload.category || "",
+        lastApp: payload.app || "",
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+
+    diagnosticsService.recordFirestoreWrite("device_sessions", true);
+    log.debug("session finalized", { sessionId: payload.sessionId, app: payload.app, dur: payload.durationSeconds });
+  } catch (err) {
+    diagnosticsService.recordFirestoreWrite("device_sessions", false, err);
+    throw err;
+  }
 }
 
 async function writeSnapshot(payload) {
-  need("companyId", payload.companyId);
-  need("snapshotId", payload.snapshotId);
-  const ref = doc(db(), "companies", payload.companyId, "analytics_snapshots", payload.snapshotId);
-  await setDoc(ref, {
-    ...payload,
-    windowStart: tsFromSeconds(payload.windowStart),
-    windowEnd: tsFromSeconds(payload.windowEnd),
-    createdAt: serverTimestamp(),
-  }, { merge: true });
-  log.debug("snapshot written", { snapshotId: payload.snapshotId, productivity: payload.productivityScore });
+  try {
+    need("companyId", payload.companyId);
+    need("snapshotId", payload.snapshotId);
+    const ref = doc(db(), "companies", payload.companyId, "analytics_snapshots", payload.snapshotId);
+    await setDoc(ref, {
+      ...payload,
+      windowStart: tsFromSeconds(payload.windowStart),
+      windowEnd: tsFromSeconds(payload.windowEnd),
+      createdAt: serverTimestamp(),
+    }, { merge: true });
+    diagnosticsService.recordFirestoreWrite("analytics_snapshots", true);
+    log.debug("snapshot written", { snapshotId: payload.snapshotId, productivity: payload.productivityScore });
+  } catch (err) {
+    diagnosticsService.recordFirestoreWrite("analytics_snapshots", false, err);
+    throw err;
+  }
 }
 
 async function writeAnomaly(payload) {
-  need("companyId", payload.companyId);
-  need("eventId", payload.eventId);
-  const ref = doc(db(), "companies", payload.companyId, "anomaly_events", payload.eventId);
-  await setDoc(ref, {
-    ...payload,
-    detectedAt: tsFromSeconds(payload.detectedAt) || serverTimestamp(),
-    createdAt: serverTimestamp(),
-  }, { merge: true });
-  log.debug("anomaly written", { type: payload.type, severity: payload.severity });
+  try {
+    need("companyId", payload.companyId);
+    need("eventId", payload.eventId);
+    const ref = doc(db(), "companies", payload.companyId, "anomaly_events", payload.eventId);
+    await setDoc(ref, {
+      ...payload,
+      detectedAt: tsFromSeconds(payload.detectedAt) || serverTimestamp(),
+      createdAt: serverTimestamp(),
+    }, { merge: true });
+    diagnosticsService.recordFirestoreWrite("anomaly_events", true);
+    log.debug("anomaly written", { type: payload.type, severity: payload.severity });
+  } catch (err) {
+    diagnosticsService.recordFirestoreWrite("anomaly_events", false, err);
+    throw err;
+  }
 }
 
 function tsFromSecondsOrNow(sec) {
@@ -129,17 +154,23 @@ function tsFromSecondsOrNow(sec) {
 }
 
 async function writeStatsSummary(payload) {
-  need("companyId", payload.companyId);
-  need("summaryId", payload.summaryId);
-  const ref = doc(db(), "companies", payload.companyId, "stats_summaries", payload.summaryId);
-  await setDoc(ref, {
-    ...payload,
-    startedAt: tsFromSecondsOrNow(payload.startedAt),
-    lastSampleAt: tsFromSeconds(payload.lastSampleAt),
-    generatedAt: tsFromSecondsOrNow(payload.generatedAt),
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
-  log.debug("stats summary written", { summaryId: payload.summaryId, final: payload.final });
+  try {
+    need("companyId", payload.companyId);
+    need("summaryId", payload.summaryId);
+    const ref = doc(db(), "companies", payload.companyId, "stats_summaries", payload.summaryId);
+    await setDoc(ref, {
+      ...payload,
+      startedAt: tsFromSecondsOrNow(payload.startedAt),
+      lastSampleAt: tsFromSeconds(payload.lastSampleAt),
+      generatedAt: tsFromSecondsOrNow(payload.generatedAt),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    diagnosticsService.recordFirestoreWrite("stats_summaries", true);
+    log.debug("stats summary written", { summaryId: payload.summaryId, final: payload.final });
+  } catch (err) {
+    diagnosticsService.recordFirestoreWrite("stats_summaries", false, err);
+    throw err;
+  }
 }
 
 // ---- Aggregation writers (increment-based, no reads) -----------------------
@@ -162,35 +193,41 @@ function toIncrementTree(node) {
 }
 
 async function incrementAggregate({ collectionName, payload }) {
-  need("companyId", payload.companyId);
-  need("userId", payload.userId);
-  need("docId", payload.docId);
-  const ref = doc(db(), "companies", payload.companyId, collectionName, payload.docId);
+  try {
+    need("companyId", payload.companyId);
+    need("userId", payload.userId);
+    need("docId", payload.docId);
+    const ref = doc(db(), "companies", payload.companyId, collectionName, payload.docId);
 
-  const { docId, companyId, userId, counters, categories, appUsage, productivityDistribution, dailyTrend, weeklyTrend, lastSessionId, ...identity } = payload;
+    const { docId, companyId, userId, counters, categories, appUsage, productivityDistribution, dailyTrend, weeklyTrend, lastSessionId, ...identity } = payload;
 
-  const data = {
-    // identity (set once, merged forever)
-    userId,
-    companyId,
-    ...identity,
-    lastSessionId: lastSessionId || null,
-    updatedAt: serverTimestamp(),
-    generatedAt: serverTimestamp(),
-    // numeric counters → increment()
-    counters: counters ? toIncrementTree(counters) : undefined,
-    categories: categories ? toIncrementTree(categories) : undefined,
-    appUsage: appUsage ? toIncrementTree(appUsage) : undefined,
-    productivityDistribution: productivityDistribution ? toIncrementTree(productivityDistribution) : undefined,
-    dailyTrend: dailyTrend ? toIncrementTree(dailyTrend) : undefined,
-    weeklyTrend: weeklyTrend ? toIncrementTree(weeklyTrend) : undefined,
-  };
+    const data = {
+      // identity (set once, merged forever)
+      userId,
+      companyId,
+      ...identity,
+      lastSessionId: lastSessionId || null,
+      updatedAt: serverTimestamp(),
+      generatedAt: serverTimestamp(),
+      // numeric counters → increment()
+      counters: counters ? toIncrementTree(counters) : undefined,
+      categories: categories ? toIncrementTree(categories) : undefined,
+      appUsage: appUsage ? toIncrementTree(appUsage) : undefined,
+      productivityDistribution: productivityDistribution ? toIncrementTree(productivityDistribution) : undefined,
+      dailyTrend: dailyTrend ? toIncrementTree(dailyTrend) : undefined,
+      weeklyTrend: weeklyTrend ? toIncrementTree(weeklyTrend) : undefined,
+    };
 
-  // Strip undefined keys so Firestore doesn't reject them.
-  for (const k of Object.keys(data)) if (data[k] === undefined) delete data[k];
+    // Strip undefined keys so Firestore doesn't reject them.
+    for (const k of Object.keys(data)) if (data[k] === undefined) delete data[k];
 
-  await setDoc(ref, data, { merge: true });
-  log.debug("aggregate incremented", { collectionName, docId: payload.docId });
+    await setDoc(ref, data, { merge: true });
+    diagnosticsService.recordFirestoreWrite(collectionName, true);
+    log.debug("aggregate incremented", { collectionName, docId: payload.docId });
+  } catch (err) {
+    diagnosticsService.recordFirestoreWrite(collectionName, false, err);
+    throw err;
+  }
 }
 
 async function incrementDailyAnalytics(payload) {

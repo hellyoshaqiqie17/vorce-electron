@@ -85,7 +85,8 @@ const monitor = require("./core/monitor");
 const authService = require("./services/authService");
 const deviceService = require("./services/deviceService");
 const localApiServer = require("./services/localApiServer");
-const { make } = require("./utils/logger");
+const { make, getLogs } = require("./utils/logger");
+const diagnosticsService = require("./services/diagnosticsService");
 
 const log = make("main");
 
@@ -1155,6 +1156,49 @@ function setupIpc() {
     }
     return { ok: true };
   });
+
+  ipcMain.handle("diagnostics:get-report", async (event, rendererLocationStatus) => {
+    return await diagnosticsService.getReport(rendererLocationStatus, deviceService, authService, monitor);
+  });
+
+  ipcMain.handle("diagnostics:get-logs", async (event, filters) => {
+    const { search = "", level = "ALL" } = filters || {};
+    let allLogs = getLogs();
+    
+    if (level && level !== "ALL") {
+      allLogs = allLogs.filter(l => l.level === level.toUpperCase());
+    }
+    
+    if (search && search.trim() !== "") {
+      const q = search.toLowerCase();
+      allLogs = allLogs.filter(l => 
+        l.message.toLowerCase().includes(q) || 
+        l.module.toLowerCase().includes(q)
+      );
+    }
+    
+    return allLogs;
+  });
+
+  ipcMain.handle("diagnostics:export-report", async (event, rendererLocationStatus) => {
+    const report = await diagnosticsService.getReport(rendererLocationStatus, deviceService, authService, monitor);
+    
+    const { filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: "Export Diagnostic Report",
+      defaultPath: path.join(app.getPath("downloads"), "diagnostics.json"),
+      filters: [
+        { name: "JSON Files", extensions: ["json"] }
+      ]
+    });
+
+    if (filePath) {
+      const fs = require("fs");
+      fs.writeFileSync(filePath, JSON.stringify(report, null, 2), "utf8");
+      log.info("Diagnostics report exported", { filePath });
+      return { ok: true, filePath };
+    }
+    return { ok: false, error: "Dibatalkan oleh user." };
+  });
 }
 
 // Cleanup on app quit
@@ -1180,6 +1224,7 @@ app.whenReady().then(async () => {
   await localApiServer.start();
   setupIpc();
   createWindow();
+  diagnosticsService.runStartupAudit(deviceService, authService, monitor);
 
   if (process.platform === "darwin") {
     try {
