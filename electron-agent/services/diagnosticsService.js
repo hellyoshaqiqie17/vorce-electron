@@ -329,7 +329,7 @@ async function getReport(rendererLocationStatus, deviceService, authService, mon
     platform: process.platform,
     osVersion: os.release(),
     deviceId: regState?.deviceId || "",
-    userId: session?.userId || "",
+    userId: regState?.binding?.userId || session?.uid || "",
     companyId: regState?.binding?.companyId || "",
 
     agentRunning: true,

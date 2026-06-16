@@ -24,6 +24,24 @@ function safeKey(value) {
     .trim();
 }
 
+function sanitizeKeys(obj) {
+  if (obj === null || typeof obj !== "object") {
+    return obj;
+  }
+  if (obj[".sv"] !== undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeKeys);
+  }
+  const sanitized = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const safeKeyStr = key.replace(/[.#$\[\]\/]/g, "_");
+    sanitized[safeKeyStr] = sanitizeKeys(value);
+  }
+  return sanitized;
+}
+
 function statusPath(companyId, deviceId) {
   const companyKey = safeKey(companyId);
   const deviceKey = safeKey(deviceId);
@@ -179,8 +197,9 @@ async function upsertStatsSummary(payload) {
   const path = `stats/${safeKey(payload.companyId)}/${safeKey(payload.deviceId)}`;
   const summaryRef = ref(db, path);
   try {
+    const sanitizedPayload = sanitizeKeys(payload);
     await set(summaryRef, {
-      ...payload,
+      ...sanitizedPayload,
       companyId: safeKey(payload.companyId),
       deviceId: safeKey(payload.deviceId),
       updatedAt: serverTimestamp(),

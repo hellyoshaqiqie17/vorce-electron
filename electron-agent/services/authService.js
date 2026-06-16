@@ -60,6 +60,7 @@ function currentSession() {
     displayName: user?.displayName || "",
     hasToken: Boolean(user),
     deviceId: tokenStore.getDeviceId(),
+    uid: user?.uid || "",
   };
 }
 
