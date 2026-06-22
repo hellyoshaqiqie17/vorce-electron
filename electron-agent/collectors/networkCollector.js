@@ -11,6 +11,38 @@ let lastWifiFetchTime = 0;
 let isFetchingLocation = false;
 const WIFI_CACHE_TTL = 10000; // Cache SSID for 10 seconds
 
+let wifiNative = null;
+let wifiNativeError = null;
+
+function loadNativeAddon() {
+  const paths = [
+    "../native/build/Release/wifi_native.node",
+    "../native/build/Debug/wifi_native.node",
+    "../build/Release/wifi_native.node",
+    "./native/build/Release/wifi_native.node",
+    "../wifi_native.node"
+  ];
+  
+  let lastErr = null;
+  for (const p of paths) {
+    try {
+      wifiNative = require(p);
+      wifiNativeError = null;
+      return wifiNative;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  wifiNativeError = lastErr;
+  if (wifiNativeError && os.platform() === "darwin") {
+    console.error("[NetworkCollector] Native CoreWLAN addon failed to load. Full error:", wifiNativeError);
+  }
+  return null;
+}
+
+// Initial load of the native module
+loadNativeAddon();
+
 /**
  * Attempt to read the SSID via macOS CoreWLAN framework using osascript Objective-C bridge.
  * This method inherits the parent Electron app's Location Services entitlement,
@@ -98,7 +130,26 @@ async function fetchWifiSsid() {
     return cachedWifi;
   }
 
-  // Method 0 (macOS only): CoreWLAN via Objective-C bridge — most reliable
+  // Method 0: Native in-process CoreWLAN addon (most reliable on macOS Sonoma/Sequoia/Tahoe)
+  if (os.platform() === "darwin") {
+    try {
+      if (!wifiNative && wifiNativeError) {
+        loadNativeAddon(); // Retry in case of deferred loading
+      }
+      if (wifiNative && typeof wifiNative.getSSID === "function") {
+        const nativeSsid = wifiNative.getSSID();
+        if (nativeSsid !== null && nativeSsid !== undefined && nativeSsid !== "<redacted>") {
+          cachedWifi = nativeSsid;
+          lastWifiFetchTime = now;
+          return cachedWifi;
+        }
+      }
+    } catch (err) {
+      console.error("[NetworkCollector] Native addon getSSID call failed:", err);
+    }
+  }
+
+  // Method 0.5 (macOS only): CoreWLAN via Objective-C bridge — fallback
   // This inherits the Electron app's Location Services entitlement
   const coreWlanSsid = fetchSsidViaCoreWLAN();
   if (coreWlanSsid) {
@@ -325,4 +376,4 @@ async function collectNetwork() {
   };
 }
 
-module.exports = { collectNetwork };
+module.exports = { collectNetwork, wifiNative, wifiNativeError, loadNativeAddon };

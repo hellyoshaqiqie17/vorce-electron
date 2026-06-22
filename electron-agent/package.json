@@ -1,6 +1,6 @@
 {
   "name": "vlinked-electron-agent",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "Vlinked desktop monitoring agent. Authenticates with Firebase, exposes a local monitoring API, and writes desktop device/metrics data to Firestore.",
   "main": "main.js",
   "private": true,
@@ -13,7 +13,8 @@
     "build:mac": "electron-builder --mac --publish never",
     "build:linux": "electron-builder --linux --publish never",
     "build:all": "electron-builder --win --mac --linux --publish never",
-    "build:dir": "electron-builder --win --dir --publish never"
+    "build:dir": "electron-builder --win --dir --publish never",
+    "postinstall": "node -e \"if (process.platform === 'darwin') { const { execSync } = require('child_process'); try { console.log('Building native CoreWLAN addon...'); execSync('npx node-gyp rebuild', { cwd: 'native', stdio: 'inherit' }); } catch (e) { console.warn('Warning: Failed to compile native CoreWLAN addon. Graceful fallback to JXA will be used. Error:', e.message); } }\""
   },
   "author": "Vlinked",
   "license": "UNLICENSED",
@@ -95,6 +96,7 @@
     "electron-updater": "^6.8.9",
     "express": "^5.2.1",
     "firebase": "^12.13.0",
+    "node-addon-api": "^8.0.0",
     "node-machine-id": "^1.1.12",
     "pidusage": "^4.0.1",
     "systeminformation": "^5.22.11"

@@ -196,15 +196,21 @@ function checkAdminPrivileges() {
 }
 
 // Wi-Fi commands diagnostics
-function getWifiDiagnostics() {
+function getWifiDiagnostics(locationServices) {
+  const networkCollector = require("../collectors/networkCollector");
+  const wifiNative = networkCollector.wifiNative;
+  const wifiNativeError = networkCollector.wifiNativeError;
+
   const result = {
     wifiCollectorStatus: wifiCollectorStatus,
     ssid: cachedWifiSsid || "",
     bssid: cachedWifiBssid || "",
     interface: cachedWifiIface || "en0",
-    permissionStatus: "denied",
+    permissionStatus: locationServices ? "granted" : "denied",
+    locationGranted: !!locationServices,
+    nativeAddonLoaded: wifiNative !== null,
     isRedacted: false,
-    lastError: cachedWifiError,
+    lastError: wifiNativeError ? `Native addon failed to load: ${wifiNativeError.message}\nStack: ${wifiNativeError.stack}` : cachedWifiError,
     rawCollectorOutput: "",
     collectorMethod: "system_profiler SPAirPortDataType",
     macOSVersion: ""
@@ -295,6 +301,30 @@ function getWifiDiagnostics() {
     result.rawCollectorOutput = `Failed running system_profiler: ${err.message}`;
   }
 
+  // Try Native Addon first (most reliable on macOS Sonoma/Sequoia/Tahoe)
+  if (process.platform === "darwin") {
+    try {
+      if (!wifiNative && wifiNativeError) {
+        // Try reloading once
+        networkCollector.loadNativeAddon();
+      }
+      const activeWifiNative = networkCollector.wifiNative;
+      result.nativeAddonLoaded = activeWifiNative !== null;
+      if (activeWifiNative && typeof activeWifiNative.getSSID === "function") {
+        const nativeSsid = activeWifiNative.getSSID();
+        if (nativeSsid !== null && nativeSsid !== undefined && nativeSsid !== "<redacted>") {
+          result.ssid = nativeSsid;
+          result.isRedacted = false;
+          result.collectorMethod = "CoreWLAN (Native Addon)";
+        }
+      }
+    } catch (err) {
+      logger.make("diagnostics").error("Failed to query SSID via native addon:", err);
+      result.lastError = `Native addon query error: ${err.message}\nStack: ${err.stack}`;
+    }
+  }
+
+  // Fallback to JXA if native addon is not available/failed
   if (result.ssid === "<redacted>" || !result.ssid) {
     result.isRedacted = true;
 
@@ -333,8 +363,7 @@ async function getReport(rendererLocationStatus, deviceService, authService, mon
   const fullDiskAccess = checkFullDiskAccess();
   const adminPrivileges = checkAdminPrivileges();
 
-  const wifiInfo = getWifiDiagnostics();
-  wifiInfo.permissionStatus = locationServices ? "granted" : "denied";
+  const wifiInfo = getWifiDiagnostics(locationServices);
 
   const regState = deviceService ? deviceService.getRegistrationState() : null;
   const session = authService ? authService.currentSession() : null;
