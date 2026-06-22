@@ -200,6 +200,8 @@ function getWifiDiagnostics(locationServices) {
   const networkCollector = require("../collectors/networkCollector");
   const wifiNative = networkCollector.wifiNative;
   const wifiNativeError = networkCollector.wifiNativeError;
+  const wifiNativePath = networkCollector.wifiNativePath;
+  const wifiNativeExists = networkCollector.wifiNativeExists;
 
   const result = {
     wifiCollectorStatus: wifiCollectorStatus,
@@ -208,7 +210,10 @@ function getWifiDiagnostics(locationServices) {
     interface: cachedWifiIface || "en0",
     permissionStatus: locationServices ? "granted" : "denied",
     locationGranted: !!locationServices,
+    nativeAddonPath: wifiNativePath || "",
+    nativeAddonExists: !!wifiNativeExists,
     nativeAddonLoaded: wifiNative !== null,
+    nativeAddonLoadError: wifiNativeError ? `${wifiNativeError.message}\nStack: ${wifiNativeError.stack}` : "",
     isRedacted: false,
     lastError: wifiNativeError ? `Native addon failed to load: ${wifiNativeError.message}\nStack: ${wifiNativeError.stack}` : cachedWifiError,
     rawCollectorOutput: "",

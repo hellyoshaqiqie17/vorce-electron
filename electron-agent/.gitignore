@@ -12,3 +12,6 @@ certificate/
 *.p12
 *.pem
 *.cer
+
+# Dynamic native build files
+native/binding.gyp

@@ -11,33 +11,47 @@ let lastWifiFetchTime = 0;
 let isFetchingLocation = false;
 const WIFI_CACHE_TTL = 10000; // Cache SSID for 10 seconds
 
+const fs = require("fs");
+const path = require("path");
+
 let wifiNative = null;
 let wifiNativeError = null;
+let wifiNativePath = "";
+let wifiNativeExists = false;
 
-function loadNativeAddon() {
-  const paths = [
-    "../native/build/Release/wifi_native.node",
-    "../native/build/Debug/wifi_native.node",
-    "../build/Release/wifi_native.node",
-    "./native/build/Release/wifi_native.node",
-    "../wifi_native.node"
-  ];
+try {
+  // Resolve the path to the compiled .node file
+  wifiNativePath = require.resolve("wifi-native/build/Release/wifi_native.node");
   
-  let lastErr = null;
-  for (const p of paths) {
-    try {
-      wifiNative = require(p);
-      wifiNativeError = null;
-      return wifiNative;
-    } catch (err) {
-      lastErr = err;
+  // If it's resolved inside app.asar, use the app.asar.unpacked path which is the real file on disk
+  if (wifiNativePath.includes("app.asar") && !wifiNativePath.includes("app.asar.unpacked")) {
+    const unpacked = wifiNativePath.replace("app.asar", "app.asar.unpacked");
+    if (fs.existsSync(unpacked)) {
+      wifiNativePath = unpacked;
     }
   }
-  wifiNativeError = lastErr;
-  if (wifiNativeError && os.platform() === "darwin") {
-    console.error("[NetworkCollector] Native CoreWLAN addon failed to load. Full error:", wifiNativeError);
+  wifiNativeExists = fs.existsSync(wifiNativePath);
+} catch (err) {
+  wifiNativeError = err;
+}
+
+// 5. Print startup logs
+console.log("Addon path:", wifiNativePath);
+console.log("Exists:", wifiNativeExists);
+
+function loadNativeAddon() {
+  try {
+    const nativePkg = require("wifi-native");
+    wifiNative = nativePkg;
+    wifiNativeError = nativePkg.loadError || null;
+    return wifiNative;
+  } catch (err) {
+    wifiNativeError = err;
+    if (os.platform() === "darwin") {
+      console.error("[NetworkCollector] Native CoreWLAN addon failed to load. Full error:", err);
+    }
+    return null;
   }
-  return null;
 }
 
 // Initial load of the native module
@@ -376,4 +390,4 @@ async function collectNetwork() {
   };
 }
 
-module.exports = { collectNetwork, wifiNative, wifiNativeError, loadNativeAddon };
+module.exports = { collectNetwork, wifiNative, wifiNativeError, loadNativeAddon, wifiNativePath, wifiNativeExists };

@@ -1,6 +1,6 @@
 {
   "name": "vlinked-electron-agent",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "description": "Vlinked desktop monitoring agent. Authenticates with Firebase, exposes a local monitoring API, and writes desktop device/metrics data to Firestore.",
   "main": "main.js",
   "private": true,
@@ -14,7 +14,7 @@
     "build:linux": "electron-builder --linux --publish never",
     "build:all": "electron-builder --win --mac --linux --publish never",
     "build:dir": "electron-builder --win --dir --publish never",
-    "postinstall": "node -e \"if (process.platform === 'darwin') { const { execSync } = require('child_process'); try { console.log('Building native CoreWLAN addon...'); execSync('npx node-gyp rebuild', { cwd: 'native', stdio: 'inherit' }); } catch (e) { console.warn('Warning: Failed to compile native CoreWLAN addon. Graceful fallback to JXA will be used. Error:', e.message); } }\""
+    "postinstall": "node -e \"if (process.platform === 'darwin') { const { execSync } = require('child_process'); const fs = require('fs'); try { console.log('Building native CoreWLAN addon...'); fs.copyFileSync('native/binding.gyp.mac', 'native/binding.gyp'); execSync('npx node-gyp rebuild', { cwd: 'native', stdio: 'inherit' }); } catch (e) { console.warn('Warning: Failed to compile native CoreWLAN addon. Graceful fallback to JXA will be used. Error:', e.message); } }\""
   },
   "author": "Vlinked",
   "license": "UNLICENSED",
@@ -24,6 +24,9 @@
   },
   "build": {
     "appId": "com.vlinked.vlinked",
+    "asarUnpack": [
+      "**/node_modules/wifi-native/**/*"
+    ],
     "productName": "Vlinked",
     "publish": {
       "provider": "github",
@@ -99,7 +102,8 @@
     "node-addon-api": "^8.0.0",
     "node-machine-id": "^1.1.12",
     "pidusage": "^4.0.1",
-    "systeminformation": "^5.22.11"
+    "systeminformation": "^5.22.11",
+    "wifi-native": "file:./native"
   },
   "devDependencies": {
     "electron": "^31.3.1",
