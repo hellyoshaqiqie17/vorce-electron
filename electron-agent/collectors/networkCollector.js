@@ -11,6 +11,61 @@ let lastWifiFetchTime = 0;
 let isFetchingLocation = false;
 const WIFI_CACHE_TTL = 10000; // Cache SSID for 10 seconds
 
+/**
+ * Attempt to read the SSID via macOS CoreWLAN framework using osascript Objective-C bridge.
+ * This method inherits the parent Electron app's Location Services entitlement,
+ * which is why it can return the real SSID when CLI tools return <redacted>.
+ * Returns the SSID string or null if it fails.
+ */
+function fetchSsidViaCoreWLAN() {
+  if (os.platform() !== "darwin") return null;
+  try {
+    const { execSync } = require("child_process");
+    const script = [
+      "ObjC.import('CoreWLAN');",
+      "var client = $.CWWiFiClient.sharedWiFiClient;",
+      "var iface = client.interface;",
+      "if (iface && iface.ssid) { iface.ssid.js; } else { ''; }"
+    ].join(" ");
+    const result = execSync(`osascript -l JavaScript -e "${script}"`, {
+      timeout: 3000,
+      encoding: "utf8",
+      env: { ...process.env },
+    }).trim();
+    if (result && result !== "" && result !== "<redacted>") {
+      return result;
+    }
+  } catch (_) {
+    // CoreWLAN JXA method failed — try Objective-C bridge
+  }
+
+  // Fallback: Objective-C bridge (more compatible with older macOS)
+  try {
+    const { execSync } = require("child_process");
+    const objcScript = `
+      ObjC.import('CoreWLAN');
+      var client = $.CWWiFiClient.sharedWiFiClient;
+      var iface = client.interface;
+      if (iface) {
+        var ssid = iface.ssid;
+        if (ssid) { ssid.js; } else { ''; }
+      } else { ''; }
+    `.trim().replace(/\n/g, " ");
+    const result = execSync(`osascript -l JavaScript -e "${objcScript}"`, {
+      timeout: 3000,
+      encoding: "utf8",
+      env: { ...process.env },
+    }).trim();
+    if (result && result !== "" && result !== "<redacted>") {
+      return result;
+    }
+  } catch (_) {
+    // Objective-C bridge also failed
+  }
+
+  return null;
+}
+
 async function fetchLocationFromIp() {
   if (isFetchingLocation) return;
   isFetchingLocation = true;
@@ -40,6 +95,15 @@ async function fetchLocationFromIp() {
 async function fetchWifiSsid() {
   const now = Date.now();
   if (now - lastWifiFetchTime < WIFI_CACHE_TTL) {
+    return cachedWifi;
+  }
+
+  // Method 0 (macOS only): CoreWLAN via Objective-C bridge — most reliable
+  // This inherits the Electron app's Location Services entitlement
+  const coreWlanSsid = fetchSsidViaCoreWLAN();
+  if (coreWlanSsid) {
+    cachedWifi = coreWlanSsid;
+    lastWifiFetchTime = now;
     return cachedWifi;
   }
 

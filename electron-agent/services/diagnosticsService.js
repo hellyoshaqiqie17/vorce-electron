@@ -297,6 +297,28 @@ function getWifiDiagnostics() {
 
   if (result.ssid === "<redacted>" || !result.ssid) {
     result.isRedacted = true;
+
+    // Try CoreWLAN via osascript Objective-C bridge to get real SSID
+    try {
+      const script = [
+        "ObjC.import('CoreWLAN');",
+        "var client = $.CWWiFiClient.sharedWiFiClient;",
+        "var iface = client.interface;",
+        "if (iface && iface.ssid) { iface.ssid.js; } else { ''; }"
+      ].join(" ");
+      const coreWlanResult = execSync(`osascript -l JavaScript -e "${script}"`, {
+        timeout: 3000,
+        encoding: "utf8",
+        env: { ...process.env },
+      }).trim();
+      if (coreWlanResult && coreWlanResult !== "" && coreWlanResult !== "<redacted>") {
+        result.ssid = coreWlanResult;
+        result.isRedacted = false;
+        result.collectorMethod = "CoreWLAN (osascript JXA bridge)";
+      }
+    } catch (_) {
+      // CoreWLAN method not available
+    }
   }
 
   return result;
