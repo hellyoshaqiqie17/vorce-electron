@@ -882,10 +882,17 @@ function setupIpc() {
     return { ok: true };
   });
 
-  ipcMain.handle("auth:session", () => ({
-    ok: true,
-    data: authService.currentSession(),
-  }));
+  ipcMain.handle("auth:session", async () => {
+    try {
+      await firebaseClient.getAuthReadyPromise();
+    } catch (err) {
+      log.warn("getAuthReadyPromise failed", { err: err.message });
+    }
+    return {
+      ok: true,
+      data: authService.currentSession(),
+    };
+  });
 
   ipcMain.handle("device:register", async () => {
     try {
