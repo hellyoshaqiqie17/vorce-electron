@@ -31,9 +31,46 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install Python (macOS native build dependency)
+        if: matrix.platform == 'mac'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         working-directory: electron-agent
         run: npm install
+
+      # ═══════════════════════════════════════════════
+      # CRITICAL FIX 1: Rebuild native addon against Electron ABI
+      # node-gyp alone compiles against Node.js headers.
+      # electron-rebuild recompiles against the exact Electron runtime.
+      # ═══════════════════════════════════════════════
+      - name: Rebuild native modules for Electron (macOS)
+        if: matrix.platform == 'mac'
+        working-directory: electron-agent
+        run: npx electron-rebuild -f -w wifi-native
+
+      # ═══════════════════════════════════════════════
+      # CRITICAL FIX 2: Verify native binary exists after rebuild
+      # Build MUST fail if wifi_native.node is missing.
+      # ═══════════════════════════════════════════════
+      - name: Verify native binary exists
+        if: matrix.platform == 'mac'
+        working-directory: electron-agent
+        run: |
+          echo "=== Searching for wifi_native.node ==="
+          FOUND=$(find . -name "wifi_native.node" -type f 2>/dev/null)
+          if [ -z "$FOUND" ]; then
+            echo "::error::CRITICAL: wifi_native.node not found after electron-rebuild. Native addon compilation failed."
+            exit 1
+          fi
+          echo "✅ Found native binary:"
+          echo "$FOUND"
+          for f in $FOUND; do
+            echo "--- file info: $f ---"
+            file "$f"
+          done
 
       - name: Decode certificate (macOS only)
         if: matrix.platform == 'mac'
@@ -57,6 +94,77 @@ jobs:
         working-directory: electron-agent
         run: npm run build:${{ matrix.platform }}
 
+      # ═══════════════════════════════════════════════
+      # CRITICAL FIX 3: Verify binary is packaged in app.asar.unpacked
+      # After electron-builder, the .node MUST be outside the ASAR archive.
+      # ═══════════════════════════════════════════════
+      - name: Verify native binary in app.asar.unpacked
+        if: matrix.platform == 'mac'
+        working-directory: electron-agent
+        run: |
+          echo "=== Searching for .node files in dist ==="
+          ALL_NODES=$(find dist -name "*.node" -type f 2>/dev/null)
+          echo "All .node files found:"
+          echo "$ALL_NODES"
+          echo ""
+
+          echo "=== Verifying app.asar.unpacked location ==="
+          UNPACKED=$(find dist -path "*app.asar.unpacked*" -name "wifi_native.node" -type f 2>/dev/null)
+          if [ -z "$UNPACKED" ]; then
+            echo "::error::CRITICAL: wifi_native.node NOT found in app.asar.unpacked. The native addon will fail to load at runtime."
+            exit 1
+          fi
+          echo "✅ Native binary correctly unpacked:"
+          echo "$UNPACKED"
+
+      # ═══════════════════════════════════════════════
+      # CRITICAL FIX 7: Verify entitlements after codesign
+      # Location entitlement MUST be present for CoreWLAN SSID access.
+      # ═══════════════════════════════════════════════
+      - name: Verify entitlements
+        if: matrix.platform == 'mac'
+        working-directory: electron-agent
+        run: |
+          echo "=== Locating .app bundle ==="
+          APP_PATH=$(find dist -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::warning::No .app bundle found in dist (may be cleaned after packaging). Skipping entitlements check."
+            exit 0
+          fi
+          echo "Found: $APP_PATH"
+          echo ""
+
+          echo "=== Extracting entitlements ==="
+          ENTITLEMENTS=$(codesign -d --entitlements :- "$APP_PATH" 2>&1) || true
+          echo "$ENTITLEMENTS"
+          echo ""
+
+          if echo "$ENTITLEMENTS" | grep -q "com.apple.security.personal-information.location"; then
+            echo "✅ Location entitlement verified"
+          else
+            echo "::error::CRITICAL: com.apple.security.personal-information.location entitlement NOT found in signed app"
+            exit 1
+          fi
+
+      # ═══════════════════════════════════════════════
+      # CRITICAL FIX 8: Verify binary architecture
+      # Must support the target architecture (arm64 for Apple Silicon).
+      # ═══════════════════════════════════════════════
+      - name: Verify binary architecture
+        if: matrix.platform == 'mac'
+        working-directory: electron-agent
+        run: |
+          NODE_FILE=$(find dist -path "*app.asar.unpacked*" -name "wifi_native.node" -type f | head -1)
+          if [ -z "$NODE_FILE" ]; then
+            echo "::error::Cannot verify architecture - binary not found in unpacked"
+            exit 1
+          fi
+          echo "=== Architecture info ==="
+          lipo -info "$NODE_FILE"
+          echo ""
+          echo "=== File type ==="
+          file "$NODE_FILE"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -71,6 +179,7 @@ jobs:
             electron-agent/dist/latest-mac.yml
             electron-agent/dist/latest-linux.yml
           if-no-files-found: ignore
+
 
       - name: Authenticate to Google Cloud
         if: matrix.platform == 'mac' || matrix.platform == 'win'

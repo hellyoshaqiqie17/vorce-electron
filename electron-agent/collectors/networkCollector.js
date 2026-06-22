@@ -18,6 +18,7 @@ let wifiNative = null;
 let wifiNativeError = null;
 let wifiNativePath = "";
 let wifiNativeExists = false;
+let wifiNativeIsStub = true; // true until real .node binary is confirmed loaded
 
 try {
   // Resolve the path to the compiled .node file
@@ -44,9 +45,14 @@ function loadNativeAddon() {
     const nativePkg = require("wifi-native");
     wifiNative = nativePkg;
     wifiNativeError = nativePkg.loadError || null;
+    wifiNativeIsStub = nativePkg.isStub !== false; // only false when real .node loaded
+    if (wifiNativeIsStub && os.platform() === "darwin") {
+      console.warn("[NetworkCollector] wifi-native loaded as STUB (real .node binary not available)");
+    }
     return wifiNative;
   } catch (err) {
     wifiNativeError = err;
+    wifiNativeIsStub = true;
     if (os.platform() === "darwin") {
       console.error("[NetworkCollector] Native CoreWLAN addon failed to load. Full error:", err);
     }
@@ -147,12 +153,13 @@ async function fetchWifiSsid() {
   // Method 0: Native in-process CoreWLAN addon (most reliable on macOS Sonoma/Sequoia/Tahoe)
   if (os.platform() === "darwin") {
     try {
-      if (!wifiNative && wifiNativeError) {
+      if (!wifiNative || wifiNativeIsStub) {
         loadNativeAddon(); // Retry in case of deferred loading
       }
-      if (wifiNative && typeof wifiNative.getSSID === "function") {
+      // Only call getSSID if real addon is loaded (not stub)
+      if (wifiNative && !wifiNativeIsStub && typeof wifiNative.getSSID === "function") {
         const nativeSsid = wifiNative.getSSID();
-        if (nativeSsid !== null && nativeSsid !== undefined && nativeSsid !== "<redacted>") {
+        if (nativeSsid !== null && nativeSsid !== undefined && nativeSsid !== "" && nativeSsid !== "<redacted>") {
           cachedWifi = nativeSsid;
           lastWifiFetchTime = now;
           return cachedWifi;
@@ -390,4 +397,4 @@ async function collectNetwork() {
   };
 }
 
-module.exports = { collectNetwork, wifiNative, wifiNativeError, loadNativeAddon, wifiNativePath, wifiNativeExists };
+module.exports = { collectNetwork, wifiNative, wifiNativeError, wifiNativeIsStub, loadNativeAddon, wifiNativePath, wifiNativeExists };

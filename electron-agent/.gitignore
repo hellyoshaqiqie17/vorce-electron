@@ -15,3 +15,4 @@ certificate/
 
 # Dynamic native build files
 native/binding.gyp
+native/build/

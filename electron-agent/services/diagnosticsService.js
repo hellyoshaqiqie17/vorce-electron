@@ -200,6 +200,7 @@ function getWifiDiagnostics(locationServices) {
   const networkCollector = require("../collectors/networkCollector");
   const wifiNative = networkCollector.wifiNative;
   const wifiNativeError = networkCollector.wifiNativeError;
+  const wifiNativeIsStub = networkCollector.wifiNativeIsStub;
   const wifiNativePath = networkCollector.wifiNativePath;
   const wifiNativeExists = networkCollector.wifiNativeExists;
 
@@ -212,7 +213,8 @@ function getWifiDiagnostics(locationServices) {
     locationGranted: !!locationServices,
     nativeAddonPath: wifiNativePath || "",
     nativeAddonExists: !!wifiNativeExists,
-    nativeAddonLoaded: wifiNative !== null,
+    nativeAddonLoaded: wifiNative !== null && !wifiNativeIsStub,
+    nativeAddonIsStub: !!wifiNativeIsStub,
     nativeAddonLoadError: wifiNativeError ? `${wifiNativeError.message}\nStack: ${wifiNativeError.stack}` : "",
     isRedacted: false,
     lastError: wifiNativeError ? `Native addon failed to load: ${wifiNativeError.message}\nStack: ${wifiNativeError.stack}` : cachedWifiError,
@@ -309,15 +311,18 @@ function getWifiDiagnostics(locationServices) {
   // Try Native Addon first (most reliable on macOS Sonoma/Sequoia/Tahoe)
   if (process.platform === "darwin") {
     try {
-      if (!wifiNative && wifiNativeError) {
+      if (!wifiNative || wifiNativeIsStub) {
         // Try reloading once
         networkCollector.loadNativeAddon();
       }
       const activeWifiNative = networkCollector.wifiNative;
-      result.nativeAddonLoaded = activeWifiNative !== null;
-      if (activeWifiNative && typeof activeWifiNative.getSSID === "function") {
+      const activeIsStub = networkCollector.wifiNativeIsStub;
+      result.nativeAddonLoaded = activeWifiNative !== null && !activeIsStub;
+      result.nativeAddonIsStub = !!activeIsStub;
+      // Only attempt CoreWLAN call if real addon is loaded (not stub)
+      if (activeWifiNative && !activeIsStub && typeof activeWifiNative.getSSID === "function") {
         const nativeSsid = activeWifiNative.getSSID();
-        if (nativeSsid !== null && nativeSsid !== undefined && nativeSsid !== "<redacted>") {
+        if (nativeSsid !== null && nativeSsid !== undefined && nativeSsid !== "" && nativeSsid !== "<redacted>") {
           result.ssid = nativeSsid;
           result.isRedacted = false;
           result.collectorMethod = "CoreWLAN (Native Addon)";

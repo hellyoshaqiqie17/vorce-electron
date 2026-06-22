@@ -1,0 +1,376 @@
+{
+  "agentStatus": {
+    "agentVersion": "1.0.26",
+    "platform": "darwin",
+    "osVersion": "25.5.0",
+    "deviceId": "desktop_192-168-1-8_507f807319095cb029ca942e",
+    "userId": "vDQmRw9ON2cZMuADmkfbrnEfa782",
+    "companyId": "CTD96L",
+    "agentRunning": true,
+    "monitorRunning": true,
+    "intelligenceRunning": true,
+    "lastHeartbeat": "",
+    "lastPresenceUpdate": "2026-06-22T14:18:15.076Z",
+    "lastStatsUpdate": "2026-06-22T14:18:16.262Z",
+    "lastSnapshot": "",
+    "lastAnalyticsWrite": "2026-06-22T14:18:10.167Z"
+  },
+  "collectors": [
+    {
+      "collector": "deviceInfo",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:03:15.830Z",
+      "durationMs": 2608,
+      "averageDurationMs": 1304,
+      "lastSuccess": "2026-06-22T14:03:15.830Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "activity",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:22.301Z",
+      "durationMs": 2554,
+      "averageDurationMs": 263,
+      "lastSuccess": "2026-06-22T14:18:22.301Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "network",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:15.023Z",
+      "durationMs": 107,
+      "averageDurationMs": 1173,
+      "lastSuccess": "2026-06-22T14:18:15.023Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "cpu",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:22.472Z",
+      "durationMs": 171,
+      "averageDurationMs": 125,
+      "lastSuccess": "2026-06-22T14:18:22.472Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "ram",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:22.487Z",
+      "durationMs": 186,
+      "averageDurationMs": 133,
+      "lastSuccess": "2026-06-22T14:18:22.487Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "disk",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:22.473Z",
+      "durationMs": 172,
+      "averageDurationMs": 126,
+      "lastSuccess": "2026-06-22T14:18:22.473Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "gpu",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:22.479Z",
+      "durationMs": 69,
+      "averageDurationMs": 77,
+      "lastSuccess": "2026-06-22T14:18:22.479Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "idle",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:15.052Z",
+      "durationMs": 0,
+      "averageDurationMs": 0,
+      "lastSuccess": "2026-06-22T14:18:15.052Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "session",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:15.052Z",
+      "durationMs": 0,
+      "averageDurationMs": 14,
+      "lastSuccess": "2026-06-22T14:18:15.052Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "application",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:22.547Z",
+      "durationMs": 137,
+      "averageDurationMs": 114,
+      "lastSuccess": "2026-06-22T14:18:22.547Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "activeWindow",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:22.474Z",
+      "durationMs": 64,
+      "averageDurationMs": 73,
+      "lastSuccess": "2026-06-22T14:18:22.474Z",
+      "lastFailure": "",
+      "lastError": null
+    },
+    {
+      "collector": "presence",
+      "status": "healthy",
+      "lastRun": "2026-06-22T14:18:15.076Z",
+      "durationMs": 24,
+      "averageDurationMs": 15,
+      "lastSuccess": "2026-06-22T14:18:15.076Z",
+      "lastFailure": "",
+      "lastError": null
+    }
+  ],
+  "wifi": {
+    "wifiCollectorStatus": "healthy",
+    "ssid": "<redacted>",
+    "bssid": "",
+    "interface": "en0",
+    "permissionStatus": "granted",
+    "locationGranted": true,
+    "nativeAddonLoaded": false,
+    "isRedacted": true,
+    "lastError": "Native addon failed to load: Cannot find module '../wifi_native.node'\nRequire stack:\n- /Applications/Vlinked.app/Contents/Resources/app.asar/collectors/networkCollector.js\n- /Applications/Vlinked.app/Contents/Resources/app.asar/core/monitor.js\n- /Applications/Vlinked.app/Contents/Resources/app.asar/main.js\n- \nStack: Error: Cannot find module '../wifi_native.node'\nRequire stack:\n- /Applications/Vlinked.app/Contents/Resources/app.asar/collectors/networkCollector.js\n- /Applications/Vlinked.app/Contents/Resources/app.asar/core/monitor.js\n- /Applications/Vlinked.app/Contents/Resources/app.asar/main.js\n- \n    at Module._resolveFilename (node:internal/modules/cjs/loader:1232:15)\n    at s._resolveFilename (node:electron/js2c/browser_init:2:120689)\n    at Module._load (node:internal/modules/cjs/loader:1058:27)\n    at c._load (node:electron/js2c/node_init:2:16955)\n    at Module.require (node:internal/modules/cjs/loader:1318:19)\n    at require (node:internal/modules/helpers:179:18)\n    at loadNativeAddon (/Applications/Vlinked.app/Contents/Resources/app.asar/collectors/networkCollector.js:29:20)\n    at Object.<anonymous> (/Applications/Vlinked.app/Contents/Resources/app.asar/collectors/networkCollector.js:44:1)\n    at Module._compile (node:internal/modules/cjs/loader:1484:14)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1564:10)",
+    "rawCollectorOutput": "Wi-Fi:\n\n      Software Versions:\n          CoreWLAN: 16.0 (1657)\n          CoreWLANKit: 16.0 (1657)\n          Menu Extra: 1.0 (19150.2)\n          System Information: 15.0 (1502)\n          IO80211 Family: 12.0 (1200.13.1)\n          Diagnostics: 11.0 (1163)\n          AirPort Utility: 6.3.9 (639.29)\n      Interfaces:\n        en0:\n          Card Type: Wi-Fi  (0x14E4, 0x4388)\n          Firmware Version: wl0: Feb  2 2026 19:18:00 version 23.50.20.0.41.51.208 FWID 01-3e23bec0\nIO80211_driverkit-1561.3 \"IO80211_driverkit-1561.3\" Apr 18 2026 17:42:26\n          MAC Address: 26:16:7f:a5:c0:45\n          Locale: Unknown\n          Country Code: ID\n          Supported PHY Modes: 802.11 a/b/g/n/ac/ax\n          Supported Channels: 1 (2GHz), 2 (2GHz), 3 (2GHz), 4 (2GHz), 5 (2GHz), 6 (2GHz), 7 (2GHz), 8 (2GHz), 9 (2GHz), 10 (2GHz), 11 (2GHz), 12 (2GHz), 13 (2GHz), 36 (5GHz), 40 (5GHz), 44 (5GHz), 48 (5GHz), 52 (5GHz), 56 (5GHz), 60 (5GHz), 64 (5GHz), 149 (5GHz), 153 (5GHz), 157 (5GHz), 161 (5GHz), 1 (6GHz), 5 (6GHz), 9 (6GHz), 13 (6GHz), 17 (6GHz), 21 (6GHz), 25 (6GHz), 29 (6GHz), 33 (6GHz), 37 (6GHz), 41 (6GHz), 45 (6GHz), 49 (6GHz), 53 (6GHz), 57 (6GHz), 61 (6GHz), 65 (6GHz), 69 (6GHz), 73 (6GHz), 77 (6GHz), 81 (6GHz), 85 (6GHz), 89 (6GHz), 93 (6GHz)\n          Wake On Wireless: Supported\n          AirDrop: Supported\n          Auto Unlock: Supported\n          Status: Connected\n          Current Network Information:\n            <redacted>:\n              PHY Mode: 802.11n\n              Channel: 13 (2GHz, 20MHz)\n              Country Code: ID\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n              Signal / Noise: -38 dBm / -96 dBm\n              Transmit Rate: 130\n              MCS Index: 15\n          Other Local Wi-Fi Networks:\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 2 (2GHz, 40MHz)\n              Network Type: Infrastructure\n              Security: WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11a/n/ac\n              Channel: 149 (5GHz, 80MHz)\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 10 (2GHz, 20MHz)\n              Network Type: Infrastructure\n              Security: None\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 4 (2GHz, 20MHz)\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 10 (2GHz, 20MHz)\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 5 (2GHz, 20MHz)\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 11 (2GHz, 40MHz)\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n/ac\n              Channel: 11 (2GHz, 20MHz)\n              Network Type: Infrastructure\n              Security: WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 8 (2GHz, 20MHz)\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 11 (2GHz, 40MHz)\n              Network Type: Infrastructure\n              Security: WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 1 (2GHz, 40MHz)\n              Network Type: Infrastructure\n              Security: WPA2 Personal\n            <redacted>:\n              PHY Mode: 802.11b/g/n\n              Channel: 13 (2GHz, 20MHz)\n              Network Type: Infrastructure\n              Security: WPA/WPA2 Personal\n              Signal / Noise: -39 dBm / -96 dBm\n        awdl0:\n          MAC Address: 96:89:6b:e9:67:1d\n          Supported Channels: 1 (2GHz), 2 (2GHz), 3 (2GHz), 4 (2GHz), 5 (2GHz), 6 (2GHz), 7 (2GHz), 8 (2GHz), 9 (2GHz), 10 (2GHz), 11 (2GHz), 12 (2GHz), 13 (2GHz), 36 (5GHz), 40 (5GHz), 44 (5GHz), 48 (5GHz), 52 (5GHz), 56 (5GHz), 60 (5GHz), 64 (5GHz), 149 (5GHz), 153 (5GHz), 157 (5GHz), 161 (5GHz), 1 (6GHz), 5 (6GHz), 9 (6GHz), 13 (6GHz), 17 (6GHz), 21 (6GHz), 25 (6GHz), 29 (6GHz), 33 (6GHz), 37 (6GHz), 41 (6GHz), 45 (6GHz), 49 (6GHz), 53 (6GHz), 57 (6GHz), 61 (6GHz), 65 (6GHz), 69 (6GHz), 73 (6GHz), 77 (6GHz), 81 (6GHz), 85 (6GHz), 89 (6GHz), 93 (6GHz)\n          Current Network Information:\n              Network Type: Infrastructure\n\n",
+    "collectorMethod": "system_profiler SPAirPortDataType",
+    "macOSVersion": "26.5.1"
+  },
+  "permissions": {
+    "accessibility": true,
+    "screenRecording": true,
+    "locationServices": true,
+    "automation": true,
+    "fullDiskAccess": false
+  },
+  "firebase": {
+    "authentication": {
+      "signedIn": true,
+      "uid": "",
+      "email": "samamikrosolusi@gmail.com"
+    },
+    "firestore": {
+      "connected": true,
+      "lastWrite": "2026-06-22T14:18:10.167Z",
+      "lastError": ""
+    },
+    "realtimeDatabase": {
+      "connected": true,
+      "lastWrite": "2026-06-22T14:18:16.262Z",
+      "lastRead": "",
+      "lastError": ""
+    }
+  },
+  "presence": {
+    "presenceState": "online",
+    "sessionId": "ab6de2bb7c46520f904d2572",
+    "currentApp": "‎WhatsApp",
+    "lastPresenceSent": "2026-06-22T14:18:15.076Z",
+    "lastPresenceAcknowledged": "2026-06-22T14:18:15.076Z",
+    "writeLatencyMs": 24,
+    "heartbeatAgeSeconds": 12,
+    "presenceWriteCount": 107,
+    "presenceFailureCount": 0
+  },
+  "pipeline": [
+    {
+      "stage": "sample",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:38.744Z",
+      "lastError": ""
+    },
+    {
+      "stage": "intelligence",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:15.076Z",
+      "lastError": ""
+    },
+    {
+      "stage": "presence",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:15.076Z",
+      "lastError": ""
+    },
+    {
+      "stage": "session",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:15.052Z",
+      "lastError": ""
+    },
+    {
+      "stage": "snapshot",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:15.076Z",
+      "lastError": ""
+    },
+    {
+      "stage": "anomaly",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:15.076Z",
+      "lastError": ""
+    },
+    {
+      "stage": "stats summary",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:16.262Z",
+      "lastError": ""
+    },
+    {
+      "stage": "daily analytics",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:10.145Z",
+      "lastError": ""
+    },
+    {
+      "stage": "weekly analytics",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:10.155Z",
+      "lastError": ""
+    },
+    {
+      "stage": "monthly analytics",
+      "status": "healthy",
+      "lastProcessed": "2026-06-22T14:18:10.168Z",
+      "lastError": ""
+    }
+  ],
+  "recentFirestoreWrites": [
+    {
+      "collection": "employee_behavior_monthly",
+      "timestamp": "2026-06-22T14:18:10.167Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "employee_behavior_weekly",
+      "timestamp": "2026-06-22T14:18:10.155Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "employee_behavior_daily",
+      "timestamp": "2026-06-22T14:18:10.145Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "device_sessions",
+      "timestamp": "2026-06-22T14:18:10.116Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "employee_behavior_monthly",
+      "timestamp": "2026-06-22T14:17:57.882Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "employee_behavior_weekly",
+      "timestamp": "2026-06-22T14:17:57.868Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "employee_behavior_daily",
+      "timestamp": "2026-06-22T14:17:57.848Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "device_sessions",
+      "timestamp": "2026-06-22T14:17:57.822Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "employee_behavior_monthly",
+      "timestamp": "2026-06-22T14:17:50.385Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "collection": "employee_behavior_weekly",
+      "timestamp": "2026-06-22T14:17:50.383Z",
+      "success": true,
+      "error": ""
+    }
+  ],
+  "recentRtdbWrites": [
+    {
+      "path": "stats/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:18:16.262Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:18:15.076Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:18:10.192Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:18:07.623Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:17:57.906Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:17:50.412Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:17:47.794Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:17:40.192Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:17:37.582Z",
+      "success": true,
+      "error": ""
+    },
+    {
+      "path": "status/CTD96L/desktop_192-168-1-8_507f807319095cb029ca942e",
+      "lastWrite": "2026-06-22T14:17:27.646Z",
+      "success": true,
+      "error": ""
+    }
+  ]
+}
