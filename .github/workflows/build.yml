@@ -83,6 +83,7 @@ jobs:
         working-directory: electron-agent
         run: npm run build:mac
         env:
+          DEBUG: electron-notarize*
           CSC_LINK: certificate.p12
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
