@@ -196,10 +196,15 @@ function renderRoute(route) {
         ${panel("Sync Queue", "Offline-first desktop state.", `<div class="empty-state"><strong>No pending queue</strong><span>Local analytics are compressed before upload.</span></div>`)}
       </section>`,
     "agent-diagnostics": `
-      <div class="diag-actions">
+      <div class="diag-actions" style="display: flex; gap: 10px; align-items: center;">
         <button id="btn-export-diagnostics" class="btn primary" style="font-size:13px;padding:10px 20px;">
           <span>📥</span> Generate Diagnostic Report
         </button>
+        ${isMac ? `
+          <button id="btn-refresh-diagnostics" class="btn primary" style="font-size:13px;padding:10px 20px;background: var(--primary);color: white; border: none;">
+            <span>🔄</span> Refresh Report
+          </button>
+        ` : ''}
       </div>
       <section class="diag-grid">
         <!-- Section 1 — Agent Status -->
@@ -958,10 +963,14 @@ function startDiagnosticsPolling() {
   };
   
   poll();
-  diagnosticsPollInterval = setInterval(poll, 2500);
+  if (!isMac) {
+    diagnosticsPollInterval = setInterval(poll, 2500);
+  }
 
   refreshLogs();
-  diagnosticsLogsInterval = setInterval(refreshLogs, 3000);
+  if (!isMac) {
+    diagnosticsLogsInterval = setInterval(refreshLogs, 3000);
+  }
 }
 
 function stopDiagnosticsPolling() {
@@ -999,6 +1008,30 @@ function bindDiagnosticsEvents() {
       } finally {
         newBtn.disabled = false;
         newBtn.innerHTML = text;
+      }
+    });
+  }
+
+  const btnRefresh = $("#btn-refresh-diagnostics");
+  if (btnRefresh) {
+    // Prevent duplicate handlers
+    const newBtn = btnRefresh.cloneNode(true);
+    btnRefresh.parentNode.replaceChild(newBtn, btnRefresh);
+    
+    newBtn.addEventListener("click", async () => {
+      newBtn.disabled = true;
+      const originalHTML = newBtn.innerHTML;
+      newBtn.innerHTML = `<span>⏳</span> Refreshing...`;
+      try {
+        const geoGranted = await getGeolocationStatus();
+        const report = await api.invoke("diagnostics:get-report", geoGranted);
+        updateDiagnosticsUI(report);
+        await refreshLogs();
+      } catch (err) {
+        console.error("Failed to refresh diagnostics", err);
+      } finally {
+        newBtn.disabled = false;
+        newBtn.innerHTML = originalHTML;
       }
     });
   }
