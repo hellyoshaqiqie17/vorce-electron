@@ -1056,6 +1056,7 @@ function bindDiagnosticsEvents() {
 
 function updateDiagnosticsUI(report) {
   if (currentRoute !== "agent-diagnostics") return;
+  if (!report) return;
 
   // 1) Agent Status
   const statusEl = $("#fields-agent-status");
