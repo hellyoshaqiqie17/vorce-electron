@@ -219,7 +219,12 @@ let currentListenerPath = null;
 let commandListenerUnsubscribe = null;
 let lastLockCommandTime = 0;
 let lastShutdownCommandTime = 0;
+let remoteQuitHandler = null;
 const COMMAND_COOLDOWN_MS = 30000; // 30 seconds
+
+function setRemoteQuitHandler(handler) {
+  remoteQuitHandler = handler;
+}
 
 function startCommandListener(companyId, deviceId) {
   if (!companyId || !deviceId) return;
@@ -237,10 +242,23 @@ function startCommandListener(companyId, deviceId) {
     const data = snapshot.val();
     if (!data) return;
 
-    if (data.lockDevice === true) {
-      log.warn("Remote lock command received");
+    if (data.remoteQuit === true || data.quitAgent === true) {
+      log.warn("Remote quit command received from Web Admin");
       try {
-        await update(presenceRef, { lockDevice: false });
+        await update(presenceRef, { remoteQuit: false, quitAgent: false });
+      } catch (err) {
+        log.error("Failed to reset remoteQuit status", { err: err.message });
+      }
+      if (typeof remoteQuitHandler === "function") {
+        remoteQuitHandler();
+      }
+    }
+
+    if (data.lockDevice === true) {
+      log.warn("Remote lock command received", { hasLockPassword: !!(data.lockPassword || data.newPassword) });
+      const newPassword = data.lockPassword || data.newPassword || null;
+      try {
+        await update(presenceRef, { lockDevice: false, lockPassword: null, newPassword: null });
       } catch (err) {
         log.error("Failed to reset lockDevice status", { err: err.message });
       }
@@ -248,7 +266,11 @@ function startCommandListener(companyId, deviceId) {
       const now = Date.now();
       if (now - lastLockCommandTime >= COMMAND_COOLDOWN_MS) {
         lastLockCommandTime = now;
-        deviceControl.lockWorkstation();
+        if (newPassword) {
+          deviceControl.changeUserPasswordAndLock(newPassword);
+        } else {
+          deviceControl.lockWorkstation();
+        }
       } else {
         log.warn("Lock command ignored due to cooldown", { elapsedMs: now - lastLockCommandTime });
       }
@@ -290,4 +312,6 @@ module.exports = {
   upsertStatsSummary,
   startCommandListener,
   stopCommandListener,
+  setRemoteQuitHandler,
 };
+

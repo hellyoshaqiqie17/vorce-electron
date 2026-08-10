@@ -14,7 +14,7 @@ const path = require("path");
 const http = require("http");
 const { exec } = require("child_process");
 const { shell, nativeImage } = require("electron");
-const { app, BrowserWindow, ipcMain, dialog, systemPreferences, Notification } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, systemPreferences, Notification, Tray, Menu } = require("electron");
 const { autoUpdater } = require("electron-updater");
 
 // Disable Edge/Chromium built-in sidebar before app is ready
@@ -97,6 +97,91 @@ let isQuitting = false;
 let authResolved = false;
 let authServer = null;
 let authServerPort = 0;
+let tray = null;
+let hasShownTrayNotification = false;
+
+function createTray() {
+  if (tray) return;
+
+  try {
+    const iconPath = path.join(__dirname, "vorcelogo", "Vlinked.png");
+    const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+
+    tray = new Tray(icon);
+    tray.setToolTip("Vlinked Agent — Monitoring Aktif");
+
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: "Buka Vlinked",
+        click: () => {
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        },
+      },
+      { type: "separator" },
+      { label: "Status: Aktif Memantau", enabled: false },
+      { label: `Versi: v${app.getVersion()}`, enabled: false },
+      { type: "separator" },
+      {
+        label: "Bantuan & Informasi",
+        click: () => {
+          dialog.showMessageBox({
+            type: "info",
+            title: "Vlinked Agent",
+            message: "Vlinked Agent Berjalan di Latar Belakang",
+            detail: "Aplikasi ini memantau aktivitas perangkat sesuai kebijakan perusahaan.\nHanya Admin yang dapat menonaktifkan aplikasi ini.",
+          });
+        },
+      },
+      { type: "separator" },
+      {
+        label: "Keluar & Nonaktifkan Agent (Admin)",
+        click: async () => {
+          const { response } = await dialog.showMessageBox({
+            type: "warning",
+            title: "Konfirmasi Menonaktifkan Agent",
+            message: "Matikan & Menonaktifkan Vlinked Agent?",
+            detail: "Mematikan agent akan menghentikan pengiriman data monitoring ke server perusahaan.\n\nApakah Anda yakin ingin menonaktifkan Vlinked secara lokal?",
+            buttons: ["Batal", "Matikan Agent"],
+            defaultId: 0,
+            cancelId: 0,
+          });
+
+          if (response === 1) {
+            log.warn("Agent manually stopped by Admin from Tray context menu");
+            isQuitting = true;
+            isAppQuitting = true;
+            try {
+              await monitor.stop();
+              await deviceService.markOffline();
+              await localApiServer.stop();
+            } catch (_) {}
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.destroy();
+            }
+            app.quit();
+          }
+        },
+      },
+    ]);
+
+    tray.setContextMenu(contextMenu);
+
+    tray.on("double-click", () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+    log.info("System Tray created successfully");
+  } catch (err) {
+    log.error("Failed to create System Tray icon", { err: err.message });
+  }
+}
 
 function startAuthServer(preferredPort = 0) {
   return new Promise(async (resolve, reject) => {
@@ -532,7 +617,18 @@ function createWindow() {
     if (isQuitting || isAppQuitting) return;
 
     e.preventDefault();
-    broadcast("app:request-close");
+    mainWindow.hide();
+
+    if (!hasShownTrayNotification) {
+      hasShownTrayNotification = true;
+      if (Notification.isSupported()) {
+        new Notification({
+          title: "Vlinked Agent Tetap Aktif",
+          body: "Aplikasi berjalan di latar belakang (System Tray). Monitoring & kontrol perangkat tetap berjalan.",
+          silent: false,
+        }).show();
+      }
+    }
   });
 
   mainWindow.on("closed", () => {
@@ -885,13 +981,18 @@ function setupIpc() {
   ipcMain.handle("auth:session", async () => {
     try {
       await firebaseClient.getAuthReadyPromise();
+      const session = await authService.getSession();
+      return {
+        ok: true,
+        data: session,
+      };
     } catch (err) {
-      log.warn("getAuthReadyPromise failed", { err: err.message });
+      log.warn("getAuthReadyPromise / getSession failed", { err: err.message });
+      return {
+        ok: false,
+        error: err.message,
+      };
     }
-    return {
-      ok: true,
-      data: authService.currentSession(),
-    };
   });
 
   ipcMain.handle("device:register", async () => {
@@ -1226,11 +1327,33 @@ app.whenReady().then(async () => {
 
   if (process.platform === "win32") {
     app.setAppUserModelId("com.vlinked.vlinked");
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: true,
+        openAsHidden: true,
+      });
+      log.info("openAtLogin configured successfully for auto-start");
+    } catch (err) {
+      log.warn("Failed to set openAtLogin settings", { err: err.message });
+    }
   }
 
   await localApiServer.start();
   setupIpc();
   createWindow();
+  createTray();
+
+  const realtimePresenceStore = require("./services/realtimePresenceStore");
+  realtimePresenceStore.setRemoteQuitHandler(async () => {
+    log.warn("Executing remote quit command from Web Admin");
+    isQuitting = true;
+    isAppQuitting = true;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.destroy();
+    }
+    app.quit();
+  });
+
   diagnosticsService.runStartupAudit(deviceService, authService, monitor);
 
   if (process.platform === "darwin") {
@@ -1253,9 +1376,8 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", async () => {
-  await monitor.stop();
-  await deviceService.markOffline();
-  if (process.platform !== "darwin") app.quit();
+  // Do NOT quit app when windows are closed — stay alive in system tray!
+  log.info("All windows closed; keeping background agent running in System Tray");
 });
 
 app.on("before-quit", async () => {
@@ -1264,3 +1386,4 @@ app.on("before-quit", async () => {
   await localApiServer.stop();
   if (authServer) { authServer.close(); authServer = null; }
 });
+

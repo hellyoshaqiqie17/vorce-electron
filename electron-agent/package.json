@@ -79,7 +79,9 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "requestedExecutionLevel": "requireAdministrator",
+      "include": "build/installer.nsh"
     },
     "protocols": {
       "name": "Vlinked",

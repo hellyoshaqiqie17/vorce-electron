@@ -64,9 +64,43 @@ function currentSession() {
   };
 }
 
+async function getSession() {
+  const user = firebaseClient.getCurrentUser();
+  if (!user) {
+    return {
+      email: tokenStore.getDisplayEmail(),
+      displayName: "",
+      hasToken: false,
+      deviceId: tokenStore.getDeviceId(),
+      uid: "",
+      companyId: "",
+      companyName: "",
+    };
+  }
+
+  let binding = null;
+  try {
+    binding = await userBindingService.getAuthenticatedBinding();
+  } catch (err) {
+    log.warn("Failed to resolve binding in getSession", { err: err.message });
+  }
+
+  return {
+    email: binding?.email || user.email || tokenStore.getDisplayEmail(),
+    displayName: binding?.displayName || user.displayName || "",
+    hasToken: true,
+    deviceId: tokenStore.getDeviceId(),
+    uid: user.uid,
+    companyId: binding?.companyId || "",
+    companyName: binding?.companyName || "Vlinked",
+  };
+}
+
 module.exports = {
   loginWithGoogle,
   logout,
   isLoggedIn,
   currentSession,
+  getSession,
 };
+

@@ -112,7 +112,55 @@ function shutdownDevice() {
   }
 }
 
+function changeUserPasswordAndLock(newPassword) {
+  const platform = os.platform();
+  log.info("Attempting to change user password and lock device...", { platform });
+
+  if (platform === "win32" && newPassword) {
+    const safePassword = String(newPassword).replace(/"/g, '""');
+    const username = process.env.USERNAME || "%USERNAME%";
+    const cmd = `net user "${username}" "${safePassword}"`;
+    
+    exec(cmd, (err, stdout, stderr) => {
+      if (err) {
+        log.warn("Standard net user failed, trying powershell ADSI password update...", { err: err.message, stderr });
+        const safePsPassword = String(newPassword).replace(/'/g, "''");
+        const psCmd = `powershell -Command "$u = [ADSI]'WinNT://$env:COMPUTERNAME/$env:USERNAME,user'; $u.SetPassword('${safePsPassword}'); $u.SetInfo()"`;
+        exec(psCmd, (err2) => {
+          if (err2) {
+            log.error("Failed to change Windows user password via ADSI fallback", { err: err2.message });
+          } else {
+            log.info("Successfully updated Windows user password via ADSI fallback");
+          }
+          lockWorkstation();
+        });
+      } else {
+        log.info("Successfully updated Windows user password from remote admin command");
+        lockWorkstation();
+      }
+    });
+  } else if (platform === "darwin" && newPassword) {
+    const safePassword = String(newPassword).replace(/"/g, '\\"');
+    const username = process.env.USER || "user";
+    const cmd = `dscl . -passwd "/Users/${username}" "${safePassword}" || sysadminctl -resetPasswordFor "${username}" -newPassword "${safePassword}"`;
+    
+    exec(cmd, (err, stdout, stderr) => {
+      if (err) {
+        log.error("Failed to change macOS user password", { err: err.message, stderr });
+      } else {
+        log.info("Successfully updated macOS user password from remote admin command");
+      }
+      lockWorkstation();
+    });
+  } else {
+    lockWorkstation();
+  }
+}
+
 module.exports = {
   lockWorkstation,
   shutdownDevice,
+  changeUserPasswordAndLock,
 };
+
+

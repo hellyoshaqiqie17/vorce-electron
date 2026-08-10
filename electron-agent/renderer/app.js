@@ -653,8 +653,32 @@ api.on("device:info", ({ deviceId, info, intervalMs }) => {
 els.btnGoogleLogin.addEventListener("click", async () => { showLoginError(""); setLoginBusy(true); try { await api.invoke("auth:open-google"); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); setLoginBusy(false); } });
 document.getElementById("btn-apple-login")?.addEventListener("click", async () => { showLoginError(""); setLoginBusy(true); try { await api.invoke("auth:open-apple"); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); setLoginBusy(false); } });
 api.on("auth:login-success", async (session) => { setLoginBusy(false); try { await afterLogin(session); } catch (err) { showLoginError(err?.message || "Terjadi kesalahan."); } });
-api.on("auth:login-error", ({ error }) => { setLoginBusy(false); showLoginError(error || "Login gagal."); });
 els.btnLogout.addEventListener("click", async () => { await api.invoke("auth:logout"); setStatus(false); showLogin(); });
+
+const btnQuitApp = $("#btn-quit-app");
+const btnExitCancel = $("#btn-exit-cancel");
+const btnExitConfirm = $("#btn-exit-confirm");
+
+if (btnQuitApp) {
+  btnQuitApp.addEventListener("click", () => {
+    toggleModal("#exit-modal", true);
+  });
+}
+if (btnExitCancel) {
+  btnExitCancel.addEventListener("click", () => {
+    toggleModal("#exit-modal", false);
+  });
+}
+if (btnExitConfirm) {
+  btnExitConfirm.addEventListener("click", async () => {
+    btnExitConfirm.disabled = true;
+    btnExitConfirm.textContent = "Mematikan...";
+    await api.invoke("app:confirm-close");
+  });
+}
+api.on("app:request-close", () => {
+  toggleModal("#exit-modal", true);
+});
 if (els.btnToggle) {
   els.btnToggle.addEventListener("click", async () => {
     els.btnToggle.disabled = true;
@@ -867,24 +891,6 @@ if (tabDeskripsi && tabPenggunaan && paneDeskripsi && panePenggunaan) {
     tabDeskripsi.classList.remove("active");
     panePenggunaan.style.display = "block";
     paneDeskripsi.style.display = "none";
-  });
-}
-
-// Exit Confirmation Modal Handler
-const exitModal = $("#exit-modal");
-const btnExitCancel = $("#btn-exit-cancel");
-const btnExitConfirm = $("#btn-exit-confirm");
-
-if (exitModal && btnExitCancel && btnExitConfirm) {
-  btnExitCancel.addEventListener("click", () => {
-    toggleModal("#exit-modal", false);
-  });
-  btnExitConfirm.addEventListener("click", () => {
-    btnExitConfirm.disabled = true;
-    api.invoke("app:confirm-close");
-  });
-  api.on("app:request-close", () => {
-    toggleModal("#exit-modal", true);
   });
 }
 
@@ -1284,4 +1290,30 @@ async function refreshLogs() {
   }
 }
 
-refreshSession().catch(() => showLogin());
+async function refreshSession() {
+  try {
+    const res = await api.invoke("auth:session");
+    if (res && res.ok && res.data && res.data.hasToken) {
+      await afterLogin(res.data);
+    } else {
+      showLogin();
+    }
+  } catch (err) {
+    showLogin();
+  }
+
+  // Fetch version info
+  try {
+    const versionRes = await api.invoke("app:get-version");
+    if (versionRes && versionRes.ok && versionRes.data) {
+      updateVersionUI({
+        ...versionRes.data.updateState,
+        currentVersion: versionRes.data.currentVersion,
+      });
+    }
+  } catch (_) {}
+}
+
+refreshSession();
+
+
