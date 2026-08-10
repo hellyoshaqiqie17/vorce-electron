@@ -1,0 +1,10 @@
+<service>
+  <id>VlinkedService</id>
+  <name>Vlinked Agent Service</name>
+  <description>Menjalankan Vlinked Monitoring dan Remote Control Service di background OS sejak booting (posisi lockscreen Windows).</description>
+  <executable>%BASE%\Vlinked.exe</executable>
+  <arguments>--headless</arguments>
+  <logmode>rotate</logmode>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>false</delayedAutoStart>
+</service>
