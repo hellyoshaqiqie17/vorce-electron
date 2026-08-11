@@ -25,7 +25,8 @@
   "build": {
     "appId": "com.vlinked.vlinked",
     "asarUnpack": [
-      "**/node_modules/wifi-native/**/*"
+      "**/node_modules/wifi-native/**/*",
+      "**/service/**/*"
     ],
     "productName": "Vlinked",
     "publish": {
