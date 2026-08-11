@@ -23,7 +23,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
     steps:
       - name: Checkout
@@ -172,64 +173,28 @@ jobs:
           if-no-files-found: ignore
 
 
-      - name: Authenticate to Google Cloud
-        if: (matrix.platform == 'mac' || matrix.platform == 'win') && env.GCP_SA_KEY != ''
+      - name: Upload macOS DMG to Cloudflare R2
+        if: matrix.platform == 'mac' && env.R2_SECRET_ACCESS_KEY != ''
         continue-on-error: true
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        if: (matrix.platform == 'mac' || matrix.platform == 'win') && env.GCP_SA_KEY != ''
-        continue-on-error: true
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Delete old macOS DMG in Firebase Storage
-        if: matrix.platform == 'mac' && env.GCP_SA_KEY != ''
-        continue-on-error: true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
         run: |
-          gcloud storage rm 'gs://hora-7394b.firebasestorage.app/Vlinked_Mac/**' || true
+          aws s3 rm s3://vorce/Vlinked_Mac/ --recursive --endpoint-url https://609723b5d7cc16b02d6454eebea06c5a.r2.cloudflarestorage.com || true
+          aws s3 cp electron-agent/dist/ s3://vorce/Vlinked_Mac/ --recursive --exclude "*" --include "*.dmg" --endpoint-url https://609723b5d7cc16b02d6454eebea06c5a.r2.cloudflarestorage.com
 
-      - name: Delete old Windows EXE in Firebase Storage
-        if: matrix.platform == 'win' && env.GCP_SA_KEY != ''
+      - name: Upload Windows EXE to Cloudflare R2
+        if: matrix.platform == 'win' && env.R2_SECRET_ACCESS_KEY != ''
         continue-on-error: true
         shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
         run: |
-          gcloud storage rm 'gs://hora-7394b.firebasestorage.app/Vlinked_Windows/**' || true
-
-      - name: Upload macOS DMG to Firebase Storage
-        if: matrix.platform == 'mac' && env.GCP_SA_KEY != ''
-        continue-on-error: true
-        uses: google-github-actions/upload-cloud-storage@v2
-        with:
-          path: 'electron-agent/dist'
-          glob: '*.dmg'
-          destination: 'hora-7394b.firebasestorage.app/Vlinked_Mac'
-          parent: false
-
-      - name: Set Firebase Storage Token and Filename for macOS DMG
-        if: matrix.platform == 'mac' && env.GCP_SA_KEY != ''
-        continue-on-error: true
-        shell: bash
-        run: |
-          gcloud storage objects update "gs://hora-7394b.firebasestorage.app/Vlinked_Mac/*.dmg" --add-custom-metadata="firebaseStorageDownloadTokens=d5dfca38-6797-4c94-8a15-e506a70ef363" || true
-
-      - name: Upload Windows EXE to Firebase Storage
-        if: matrix.platform == 'win' && env.GCP_SA_KEY != ''
-        continue-on-error: true
-        uses: google-github-actions/upload-cloud-storage@v2
-        with:
-          path: 'electron-agent/dist'
-          glob: '*.exe'
-          destination: 'hora-7394b.firebasestorage.app/Vlinked_Windows'
-          parent: false
-
-      - name: Set Firebase Storage Token and Filename for Windows EXE
-        if: matrix.platform == 'win' && env.GCP_SA_KEY != ''
-        continue-on-error: true
-        shell: bash
-        run: |
-          gcloud storage objects update "gs://hora-7394b.firebasestorage.app/Vlinked_Windows/*.exe" --add-custom-metadata="firebaseStorageDownloadTokens=1a0689a8-0f9a-46ac-b842-522167326ad0" || true
+          aws s3 rm s3://vorce/Vlinked_Windows/ --recursive --endpoint-url https://609723b5d7cc16b02d6454eebea06c5a.r2.cloudflarestorage.com || true
+          aws s3 cp electron-agent/dist/ s3://vorce/Vlinked_Windows/ --recursive --exclude "*" --include "*.exe" --endpoint-url https://609723b5d7cc16b02d6454eebea06c5a.r2.cloudflarestorage.com
 
   release:
     needs: build
