@@ -70,6 +70,10 @@ const customStorage = {
   async setItem(key, value) {
     try {
       const p = getStoragePath();
+      const dir = path.dirname(p);
+      if (!fs.existsSync(dir)) {
+        try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
+      }
       let data = {};
       if (fs.existsSync(p)) {
         const fileContent = fs.readFileSync(p);
@@ -100,6 +104,10 @@ const customStorage = {
   async removeItem(key) {
     try {
       const p = getStoragePath();
+      const dir = path.dirname(p);
+      if (!fs.existsSync(dir)) {
+        try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
+      }
       if (!fs.existsSync(p)) return;
       const fileContent = fs.readFileSync(p);
       let data = {};
@@ -134,6 +142,17 @@ function initFirebase() {
       persistence: getReactNativePersistence(customStorage),
     });
 
+    let initialAuthChecked = false;
+    if (typeof authInstance.authStateReady === "function") {
+      authInstance.authStateReady().then(() => {
+        initialAuthChecked = true;
+      }).catch(() => {
+        initialAuthChecked = true;
+      });
+    } else {
+      initialAuthChecked = true;
+    }
+
     // Keep tokenStore in sync with Firebase ID Token changes/refreshes
     onIdTokenChanged(authInstance, async (user) => {
       if (user) {
@@ -145,7 +164,7 @@ function initFirebase() {
         } catch (err) {
           log.error("Failed to update tokenStore in onIdTokenChanged", { err: err.message });
         }
-      } else {
+      } else if (initialAuthChecked) {
         tokenStore.clearToken();
         tokenStore.setDisplayEmail(null);
         log.info("tokenStore cleared via onIdTokenChanged");
@@ -180,12 +199,24 @@ function getAuthReadyPromise() {
   initFirebase();
 
   const auth = getAuthInstance();
-  authReadyPromise = new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      resolve(user);
-    });
-  });
+  authReadyPromise = (async () => {
+    try {
+      if (typeof auth.authStateReady === "function") {
+        await auth.authStateReady();
+      } else {
+        await new Promise((resolve) => {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe();
+            resolve(user);
+          });
+        });
+      }
+    } catch (err) {
+      log.error("Error waiting for authStateReady", { err: err.message });
+    }
+    return auth.currentUser;
+  })();
+
   return authReadyPromise;
 }
 
