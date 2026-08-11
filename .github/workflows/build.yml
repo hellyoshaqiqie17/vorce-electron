@@ -21,6 +21,9 @@ jobs:
             platform: mac
 
     runs-on: ${{ matrix.os }}
+    env:
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
     steps:
       - name: Checkout
@@ -73,7 +76,7 @@ jobs:
           done
 
       - name: Decode certificate (macOS only)
-        if: matrix.platform == 'mac' && secrets.APPLE_CERTIFICATE_BASE64 != ''
+        if: matrix.platform == 'mac' && env.APPLE_CERTIFICATE_BASE64 != ''
         working-directory: electron-agent
         run: |
           echo "${{ secrets.APPLE_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
@@ -170,32 +173,32 @@ jobs:
 
 
       - name: Authenticate to Google Cloud
-        if: (matrix.platform == 'mac' || matrix.platform == 'win') && secrets.GCP_SA_KEY != ''
+        if: (matrix.platform == 'mac' || matrix.platform == 'win') && env.GCP_SA_KEY != ''
         continue-on-error: true
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
-        if: (matrix.platform == 'mac' || matrix.platform == 'win') && secrets.GCP_SA_KEY != ''
+        if: (matrix.platform == 'mac' || matrix.platform == 'win') && env.GCP_SA_KEY != ''
         continue-on-error: true
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Delete old macOS DMG in Firebase Storage
-        if: matrix.platform == 'mac' && secrets.GCP_SA_KEY != ''
+        if: matrix.platform == 'mac' && env.GCP_SA_KEY != ''
         continue-on-error: true
         run: |
           gcloud storage rm 'gs://hora-7394b.firebasestorage.app/Vlinked_Mac/**' || true
 
       - name: Delete old Windows EXE in Firebase Storage
-        if: matrix.platform == 'win' && secrets.GCP_SA_KEY != ''
+        if: matrix.platform == 'win' && env.GCP_SA_KEY != ''
         continue-on-error: true
         shell: bash
         run: |
           gcloud storage rm 'gs://hora-7394b.firebasestorage.app/Vlinked_Windows/**' || true
 
       - name: Upload macOS DMG to Firebase Storage
-        if: matrix.platform == 'mac' && secrets.GCP_SA_KEY != ''
+        if: matrix.platform == 'mac' && env.GCP_SA_KEY != ''
         continue-on-error: true
         uses: google-github-actions/upload-cloud-storage@v2
         with:
@@ -205,14 +208,14 @@ jobs:
           parent: false
 
       - name: Set Firebase Storage Token and Filename for macOS DMG
-        if: matrix.platform == 'mac' && secrets.GCP_SA_KEY != ''
+        if: matrix.platform == 'mac' && env.GCP_SA_KEY != ''
         continue-on-error: true
         shell: bash
         run: |
           gcloud storage objects update "gs://hora-7394b.firebasestorage.app/Vlinked_Mac/*.dmg" --add-custom-metadata="firebaseStorageDownloadTokens=d5dfca38-6797-4c94-8a15-e506a70ef363" || true
 
       - name: Upload Windows EXE to Firebase Storage
-        if: matrix.platform == 'win' && secrets.GCP_SA_KEY != ''
+        if: matrix.platform == 'win' && env.GCP_SA_KEY != ''
         continue-on-error: true
         uses: google-github-actions/upload-cloud-storage@v2
         with:
@@ -222,7 +225,7 @@ jobs:
           parent: false
 
       - name: Set Firebase Storage Token and Filename for Windows EXE
-        if: matrix.platform == 'win' && secrets.GCP_SA_KEY != ''
+        if: matrix.platform == 'win' && env.GCP_SA_KEY != ''
         continue-on-error: true
         shell: bash
         run: |
