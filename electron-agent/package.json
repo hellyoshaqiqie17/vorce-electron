@@ -38,6 +38,7 @@
       "output": "dist"
     },
     "win": {
+      "requestedExecutionLevel": "requireAdministrator",
       "target": [
         {
           "target": "nsis",
@@ -80,7 +81,6 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "requestedExecutionLevel": "requireAdministrator",
       "include": "build/installer.nsh"
     },
     "protocols": {
