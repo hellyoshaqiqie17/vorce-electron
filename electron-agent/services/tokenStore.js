@@ -140,6 +140,67 @@ function setDisplayEmail(email) {
   writeState(next);
 }
 
+/* ───────────── cached session & oauth credentials ───────────── */
+
+function saveAuthCredentials(creds) {
+  if (!creds || typeof creds !== "object") return;
+  ensureUserDataDir();
+  const p = path.join(app.getPath("userData"), "vlinked-auth-creds.bin");
+  try {
+    const json = JSON.stringify(creds);
+    if (safeStorageAvailable()) {
+      fs.writeFileSync(p, safeStorage.encryptString(json));
+    } else {
+      fs.writeFileSync(p, Buffer.from(json, "utf8"));
+    }
+  } catch (err) {
+    log.error("Failed to save auth credentials", { err: err.message });
+  }
+}
+
+function loadAuthCredentials() {
+  try {
+    const p = path.join(app.getPath("userData"), "vlinked-auth-creds.bin");
+    if (!fs.existsSync(p)) return null;
+    const buf = fs.readFileSync(p);
+    let json = "";
+    if (safeStorageAvailable()) {
+      try {
+        json = safeStorage.decryptString(buf);
+      } catch (_) {
+        json = buf.toString("utf8");
+      }
+    } else {
+      json = buf.toString("utf8");
+    }
+    return JSON.parse(json);
+  } catch (err) {
+    log.warn("Failed to load auth credentials", { err: err.message });
+    return null;
+  }
+}
+
+function clearAuthCredentials() {
+  try {
+    const p = path.join(app.getPath("userData"), "vlinked-auth-creds.bin");
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  } catch (_) {}
+}
+
+function getCachedSession() {
+  return readState().cachedSession || null;
+}
+
+function setCachedSession(session) {
+  const next = readState();
+  if (session && typeof session === "object") {
+    next.cachedSession = session;
+  } else {
+    delete next.cachedSession;
+  }
+  writeState(next);
+}
+
 module.exports = {
   saveToken,
   loadToken,
@@ -149,4 +210,9 @@ module.exports = {
   clearDeviceId,
   getDisplayEmail,
   setDisplayEmail,
+  saveAuthCredentials,
+  loadAuthCredentials,
+  clearAuthCredentials,
+  getCachedSession,
+  setCachedSession,
 };

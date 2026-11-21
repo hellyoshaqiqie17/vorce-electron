@@ -18,36 +18,53 @@ const { make } = require("../utils/logger");
 
 const log = make("authService");
 
-async function loginWithGoogle({ oauthIdToken, oauthAccessToken }) {
+async function loginWithGoogle(authPayload) {
+  const { oauthIdToken, oauthAccessToken, refreshToken, email, displayName, localId } = authPayload || {};
   const user = await firebaseClient.signInWithGoogleCredential({
     oauthIdToken,
     oauthAccessToken,
+    refreshToken,
+    email,
+    displayName,
+    localId,
   });
   const token = await user.getIdToken();
   const binding = await userBindingService.getAuthenticatedBinding();
 
+  const resolvedEmail = binding.email || user.email || email || "";
+  const resolvedDisplayName = binding.displayName || user.displayName || displayName || "";
+
   tokenStore.saveToken(token);
-  tokenStore.setDisplayEmail(binding.email || user.email || "");
+  tokenStore.setDisplayEmail(resolvedEmail);
 
-  log.info("login ok (google)");
-
-  return {
-    email: binding.email || user.email || "",
-    displayName: binding.displayName || user.displayName || "",
+  const sessionObj = {
+    uid: user.uid,
+    userId: binding.userId || user.uid,
+    email: resolvedEmail,
+    displayName: resolvedDisplayName,
     companyId: binding.companyId,
     companyName: binding.companyName,
     hasToken: true,
   };
+  tokenStore.setCachedSession(sessionObj);
+
+  log.info("login ok (google)", { email: resolvedEmail, companyId: binding.companyId });
+
+  return sessionObj;
 }
 
 function isLoggedIn() {
-  return Boolean(firebaseClient.getCurrentUser());
+  if (firebaseClient.getCurrentUser()) return true;
+  const cached = tokenStore.getCachedSession();
+  return Boolean(cached?.uid && cached?.companyId && (tokenStore.loadToken() || tokenStore.loadAuthCredentials()));
 }
 
 async function logout() {
   await deviceService.markOffline();
   await firebaseClient.signOutFirebase();
   tokenStore.clearToken();
+  tokenStore.clearAuthCredentials();
+  tokenStore.setCachedSession(null);
   tokenStore.setDisplayEmail(null);
   deviceService.resetRegistrationState();
   log.info("logged out");
@@ -55,18 +72,26 @@ async function logout() {
 
 function currentSession() {
   const user = firebaseClient.getCurrentUser();
+  const cached = tokenStore.getCachedSession();
+  const hasToken = Boolean(user) || Boolean(cached?.uid && (tokenStore.loadToken() || tokenStore.loadAuthCredentials()));
+
   return {
-    email: user?.email || tokenStore.getDisplayEmail(),
-    displayName: user?.displayName || "",
-    hasToken: Boolean(user),
+    email: user?.email || cached?.email || tokenStore.getDisplayEmail(),
+    displayName: user?.displayName || cached?.displayName || "",
+    hasToken,
     deviceId: tokenStore.getDeviceId(),
-    uid: user?.uid || "",
+    uid: user?.uid || cached?.uid || "",
+    companyId: cached?.companyId || "",
+    companyName: cached?.companyName || "Vlinked",
   };
 }
 
 async function getSession() {
+  await firebaseClient.getAuthReadyPromise();
   const user = firebaseClient.getCurrentUser();
-  if (!user) {
+  const cached = tokenStore.getCachedSession();
+
+  if (!user && !(cached?.uid && cached?.companyId)) {
     return {
       email: tokenStore.getDisplayEmail(),
       displayName: "",
@@ -79,20 +104,33 @@ async function getSession() {
   }
 
   let binding = null;
-  try {
-    binding = await userBindingService.getAuthenticatedBinding();
-  } catch (err) {
-    log.warn("Failed to resolve binding in getSession", { err: err.message });
+  if (user) {
+    try {
+      binding = await userBindingService.getAuthenticatedBinding();
+      if (binding) {
+        tokenStore.setCachedSession({
+          uid: user.uid,
+          userId: binding.userId || user.uid,
+          email: binding.email || user.email || cached?.email || "",
+          displayName: binding.displayName || user.displayName || cached?.displayName || "",
+          companyId: binding.companyId,
+          companyName: binding.companyName || "Vlinked",
+          hasToken: true,
+        });
+      }
+    } catch (err) {
+      log.warn("Failed to resolve binding from Firestore in getSession, falling back to cached session", { err: err.message });
+    }
   }
 
   return {
-    email: binding?.email || user.email || tokenStore.getDisplayEmail(),
-    displayName: binding?.displayName || user.displayName || "",
+    email: binding?.email || user?.email || cached?.email || tokenStore.getDisplayEmail(),
+    displayName: binding?.displayName || user?.displayName || cached?.displayName || "",
     hasToken: true,
     deviceId: tokenStore.getDeviceId(),
-    uid: user.uid,
-    companyId: binding?.companyId || "",
-    companyName: binding?.companyName || "Vlinked",
+    uid: user?.uid || cached?.uid || "",
+    companyId: binding?.companyId || cached?.companyId || "",
+    companyName: binding?.companyName || cached?.companyName || "Vlinked",
   };
 }
 
@@ -103,4 +141,3 @@ module.exports = {
   currentSession,
   getSession,
 };
-

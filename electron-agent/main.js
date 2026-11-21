@@ -82,6 +82,7 @@ function killProcessOnPort(port) {
 
 const config = require("./core/config");
 const monitor = require("./core/monitor");
+const firebaseClient = require("./firebase/firebaseClient");
 const authService = require("./services/authService");
 const deviceService = require("./services/deviceService");
 const localApiServer = require("./services/localApiServer");
@@ -1325,14 +1326,16 @@ app.whenReady().then(async () => {
     intervalMs: config.metricsIntervalMs,
   });
 
-  if (process.platform === "win32") {
-    app.setAppUserModelId("com.vlinked.vlinked");
+  if (process.platform === "win32" || process.platform === "darwin") {
+    if (process.platform === "win32") {
+      app.setAppUserModelId("com.vlinked.vlinked");
+    }
     try {
       app.setLoginItemSettings({
         openAtLogin: true,
         openAsHidden: true,
       });
-      log.info("openAtLogin configured successfully for auto-start");
+      log.info("openAtLogin configured successfully for auto-start", { platform: process.platform });
     } catch (err) {
       log.warn("Failed to set openAtLogin settings", { err: err.message });
     }
@@ -1342,6 +1345,30 @@ app.whenReady().then(async () => {
   setupIpc();
   createWindow();
   createTray();
+
+  // Proactively restore session and auto-start background monitoring at boot
+  (async () => {
+    try {
+      await firebaseClient.getAuthReadyPromise();
+      if (authService.isLoggedIn()) {
+        const session = await authService.getSession();
+        log.info("Auto-login session restored on startup", { email: session?.email, companyId: session?.companyId });
+        broadcast("auth:login-success", session);
+        if (!monitor.isRunning()) {
+          const { deviceId, info, error } = await deviceService.ensureRegistered();
+          if (info) {
+            broadcast("device:info", { deviceId, info, error, intervalMs: config.metricsIntervalMs });
+          }
+          monitor.start({
+            onSample: (sample) => broadcast("monitor:sample", sample),
+          });
+          broadcast("monitor:status-changed", { running: true });
+        }
+      }
+    } catch (err) {
+      log.warn("Startup auto-login / auto-monitor check warning", { err: err.message });
+    }
+  })();
 
   const realtimePresenceStore = require("./services/realtimePresenceStore");
   realtimePresenceStore.setRemoteQuitHandler(async () => {

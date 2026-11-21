@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const express = require("express");
 const { Timestamp } = require("firebase/firestore");
 const firebaseClient = require("../firebase/firebaseClient");
+const tokenStore = require("./tokenStore");
 const monitoringStore = require("./firestoreMonitoringStore");
 const intelligenceStore = require("./firestoreIntelligenceStore");
 const localApiClient = require("./localApiClient");
@@ -33,6 +34,10 @@ async function requireFirebaseUser() {
   try {
     return await firebaseClient.waitForAuthenticatedUser();
   } catch (err) {
+    const cached = tokenStore.getCachedSession();
+    if (cached?.uid && cached?.companyId) {
+      return { uid: cached.uid, email: cached.email || "" };
+    }
     err.status = 401;
     err.message = err.message || "Firebase user belum terautentikasi.";
     throw err;

@@ -631,8 +631,18 @@ function renderDashboard(sample) {
 async function afterLogin(session) {
   showDashboard(session); showLoginError("");
   const start = await api.invoke("monitor:start");
-  if (!start.ok) showLoginError(start.error || "Gagal memulai monitor.");
-  else if (start.deviceId) setText(els.deviceIdCompact, start.deviceId);
+  if (start.ok) {
+    setStatus(true);
+    if (start.deviceId) setText(els.deviceIdCompact, start.deviceId);
+  } else {
+    const status = await api.invoke("monitor:status");
+    if (status?.ok && status.data?.running) {
+      setStatus(true);
+      if (status.data.deviceId) setText(els.deviceIdCompact, status.data.deviceId);
+    } else {
+      showLoginError(start.error || "Gagal memulai monitor.");
+    }
+  }
 }
 
 api.on("device:info", ({ deviceId, info, intervalMs }) => {
@@ -907,37 +917,6 @@ els.navItems.forEach((item) => {
     }
   });
 });
-
-async function refreshSession() {
-  const res = await api.invoke("auth:session");
-  if (!res.ok || !res.data?.hasToken) { showLogin(); return; }
-  showDashboard(res.data);
-  
-  // Start monitoring automatically on launch/login
-  const start = await api.invoke("monitor:start");
-  if (start.ok) {
-    setStatus(true);
-    if (start.deviceId) {
-      setText(els.deviceIdCompact, start.deviceId);
-    }
-  } else {
-    // If auto-start failed, fallback to check status
-    const status = await api.invoke("monitor:status");
-    if (status.ok) {
-      setStatus(status.data.running);
-      setText(els.deviceIdCompact, status.data.deviceId || "Device registered after start");
-    }
-  }
-  // Fetch version info
-  api.invoke("app:get-version").then(res => {
-    if (res.ok && res.data) {
-      updateVersionUI({
-        ...res.data.updateState,
-        currentVersion: res.data.currentVersion,
-      });
-    }
-  }).catch(() => {});
-}
 
 // ==========================================================================
 // Diagnostics Page Controllers
